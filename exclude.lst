@@ -2,7 +2,8 @@
 *.swp
 exclude.lst
 Makefile
-screenshot.png
+screenshot1.png
+screenshot2.png
 README.md
 .git/*
 .git

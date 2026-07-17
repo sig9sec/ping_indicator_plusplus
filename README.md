@@ -10,7 +10,9 @@ rewritten for GNOME 45+ with:
 - Optional top bar color change when the network is down
 - Modern Adwaita preferences UI
 
-![screenshot](screenshot.png)
+![screenshot1](screenshot1.png)
+
+![screenshot2](screenshot2.png)
 
 ## Installation
 
