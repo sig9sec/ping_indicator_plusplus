@@ -1,21 +1,56 @@
-# Ping Indicator
-![screenshot](https://github.com/trifonovkv/ping_indicator/blob/master/screenshot.png)  
+# Ping Indicator Plus Plus
+
+A GNOME Shell extension that displays ping latency in the top bar.
+
+Fork of the [original ping_indicator](https://github.com/trifonovkv/ping_indicator),
+rewritten for GNOME 45+ with:
+
+- Persistent `ping` subprocess (no spawning per refresh)
+- Automatic retry on connection loss
+- Optional top bar color change when the network is down
+- Modern Adwaita preferences UI
+
+![screenshot](screenshot.png)
+
+## Installation
+
+### From source
+
+```sh
+make
+gnome-extensions install --force ping_indicator_plusplus@info.sig9.ch.zip
+```
+
+Log out and back in, then enable:
+
+```sh
+gnome-extensions enable ping_indicator_plusplus@info.sig9.ch
+```
+
+### Manual
+
+```sh
+cd ~/.local/share/gnome-shell/extensions/
+wget https://github.com/sig9sec/ping_indicator_plusplus/releases/download/v1/ping_indicator_plusplus@info.sig9.ch.zip
+unzip ping_indicator_plusplus@info.sig9.ch.zip -d ping_indicator_plusplus@info.sig9.ch
+rm ping_indicator_plusplus@info.sig9.ch.zip
+```
+
+Log out and back in, then enable with `gnome-extensions enable ping_indicator_plusplus@info.sig9.ch`.
+
+## Building the schema
+
+The `schemas/gschemas.compiled` file is generated from the `.gschema.xml`:
+
+```sh
+glib-compile-schemas schemas/
+```
+
+This is done automatically by `make`.
 
 ## Troubleshooting
 
-Try the following:
-
-1. Try to manually install the extension:
-
-  ```
-cd ~/.local/share/gnome-shell/extensions/
-rm -rf ping_indicator@trifonovkv.gmail.com/
-wget https://github.com/trifonovkv/ping_indicator/releases/download/v20/ping_indicator@trifonovkv.gmail.com.zip
-unzip ping_indicator@trifonovkv.gmail.com.zip -d ping_indicator@trifonovkv.gmail.com
-rm ping_indicator@trifonovkv.gmail.com.zip
-```
-
-2. Check for Gnome Shell errors with `sudo journalctl -f` or `tail -f ~.xsession-errors`.
-3. Check for errors using Gnome Looking Glass: Alt+F2 > Type `lg` > Extensions.
-4. Check if the extension is listed as installed: `gnome-extensions list`.
-5. Run `gnome-tweaks` (install using `sudo apt-get install gnome-tweaks`), go to Extensions and make sure they are enabled.
+1. Check for GNOME Shell errors: `journalctl --user -f | grep -i ping`
+2. Inspect via Looking Glass: `Alt+F2` → type `lg` → Extensions
+3. Verify the extension is listed: `gnome-extensions list`
+4. Run `gnome-tweaks` and make sure the extension is enabled

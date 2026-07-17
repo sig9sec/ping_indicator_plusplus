@@ -1,8 +1,8 @@
-po/*
-exclude.lst
+*.zip
 *.swp
+exclude.lst
 Makefile
 screenshot.png
 README.md
 .git/*
-
+.git

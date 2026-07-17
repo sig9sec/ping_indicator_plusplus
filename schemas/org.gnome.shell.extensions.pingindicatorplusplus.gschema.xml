@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-shell-extension-pingindicatorplusplus">
+  <schema id="org.gnome.shell.extensions.pingindicatorplusplus" path="/org/gnome/shell/extensions/pingindicatorplusplus/">
+    <key name="ping-destination" type="s">
+      <default>'8.8.8.8'</default>
+    </key>
+    <key name="refresh-interval" type="i">
+      <default>2</default>
+    </key>
+    <key name="beep-when-timeout" type="b">
+      <default>false</default>
+    </key>
+  </schema>
+</schemalist>
