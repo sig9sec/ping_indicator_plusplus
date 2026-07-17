@@ -1,11 +1,9 @@
 {
-  "description": "Display ping time",
-  "name": "Ping Indicator",
-  "shell-version": [
-    "40",
-    "41",
-  ],
-  "url": "https://github.com/trifonovkv/ping_indicator",
-  "uuid": "ping_indicator@trifonovkv.gmail.com",
-  "version": 23
+  "description": "Displays ping latency in the top bar, with optional sound and bar color alert when the network is down. Semi-rewrite, updated fork of ping_indicator.",
+  "name": "Ping Indicator++",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "url": "https://github.com/sig9sec/ping_indicator_plusplus",
+  "uuid": "ping_indicator_plusplus@info.sig9.ch",
+  "settings-schema": "org.gnome.shell.extensions.pingindicatorplusplus",
+  "version": 1
 }

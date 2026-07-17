@@ -1,191 +1,214 @@
-const St = imports.gi.St;
-const Main = imports.ui.main;
-const Clutter = imports.gi.Clutter;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
-const Lang = imports.lang;
-const GLib = imports.gi.GLib;
-const Mainloop = imports.mainloop;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
-const Config = imports.misc.config;
-const Util = imports.misc.util;
-const Gettext = imports.gettext.domain('gnome-shell-extension-pingindicator');
-const _ = Gettext.gettext;
+import Clutter from "gi://Clutter";
+import Gio from "gi://Gio";
+import GLib from "gi://GLib";
+import GObject from "gi://GObject";
+import St from "gi://St";
 
-const SHELL_MINOR = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
-const PING_SETTINGS_SCHEMA = 'org.gnome.shell.extensions.pingindicator';
-const PING_DESTINATION = 'ping-destination';
-const REFRESH_INTERVAL = 'refresh-interval';
-const BEEP_WHEN_TIMEOUT = 'beep-when-timeout';
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
+import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
+import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
-const SOUND_FILE_PATH = '/usr/share/sounds/freedesktop/stereo/bell.oga';
+import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
-const PingMenuButton = new Lang.Class({
-    Name: 'PingMenuButton',
-    Extends: PanelMenu.Button,
+const SOUND_FILE_PATH = "/usr/share/sounds/freedesktop/stereo/bell.oga";
+const RETRY_INTERVAL_SEC = 5;
 
-    _init: function() {
-        this.parent(0.0, 'Ping Indicator', false);
-        this._loadConfig();
-        this.buttonText = new St.Label({
-            text: _("..."),
-            y_align: Clutter.ActorAlign.CENTER
+const PingIndicator = GObject.registerClass(
+class PingIndicator extends PanelMenu.Button {
+    _init(ext) {
+      super._init(0.0, "Ping Indicator++", false);
+
+      this._ext = ext;
+      this._settings = ext.getSettings();
+      this._proc = null;
+      this._stream = null;
+      this._cancellable = null;
+      this._retryId = null;
+      this._cssProvider = null;
+
+      this._buttonText = new St.Label({
+        text: "...",
+        y_align: Clutter.ActorAlign.CENTER,
+      });
+      this.add_child(this._buttonText);
+
+      let item = new PopupMenu.PopupMenuItem("Settings");
+      item.connect("activate", () => {
+        this._ext.openPreferences();
+      });
+      this.menu.addMenuItem(item);
+
+      this._settingsChangedId = this._settings.connect("changed", () => {
+        this._startPing();
+      });
+
+      this._startPing();
+    }
+
+    _startPing() {
+      this._stopPing();
+      this._clearError();
+      this._cancellable = new Gio.Cancellable();
+
+      const dest = this._settings.get_string("ping-destination");
+      const interval = this._settings.get_int("refresh-interval");
+
+      try {
+        this._proc = new Gio.Subprocess({
+          argv: ["ping", "-i", String(interval), "-s", "16", dest],
+          flags: Gio.SubprocessFlags.STDOUT_PIPE,
+        });
+        this._proc.init(null);
+
+        this._stream = new Gio.DataInputStream({
+          base_stream: this._proc.get_stdout_pipe(),
         });
 
-        // Compatibility with gnome-shell >= 3.32
-        if (SHELL_MINOR > 30) {
-            this.add_actor(this.buttonText);
-        }
-        else {
-            this.actor.add_actor(this.buttonText);
-        }
-
-        let item = new PopupMenu.PopupMenuItem(_("Settings"));
-        item.connect('activate', Lang.bind(this, this._onPreferencesActivate));
-        this.menu.addMenuItem(item);
-
-        this._refresh();
-    },
-
-    _loadConfig: function() {
-        this._settings = Convenience.getSettings(PING_SETTINGS_SCHEMA);
-        this._settingsC = this._settings.connect("changed", Lang.bind(this, function() {
-            this._refresh();
-        }));
-    },
-
-    _onPreferencesActivate: function() {
-        Util.spawn(["gnome-shell-extension-prefs", "ping_indicator@trifonovkv.gmail.com"]);
-        return 0;
-    },
-
-    _loadData: function() {
-        let success;
-        this.command = ["ping", "-c 1", this._pingDestination];
-        [success, this.child_pid, this.std_in, this.std_out, this.std_err] =
-        GLib.spawn_async_with_pipes(
-            null, 
-            this.command, 
-            null,
-            GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-            null);
-
-        if (!success) {
-            return;
-        }
-
-        this.IOchannelIN = GLib.IOChannel.unix_new(this.std_in);
-        this.IOchannelOUT = GLib.IOChannel.unix_new(this.std_out);
-        this.IOchannelERR = GLib.IOChannel.unix_new(this.std_err);
-        
-        this.IOchannelIN.shutdown(false);        
-
-        this.tagWatchChild = GLib.child_watch_add(GLib.PRIORITY_DEFAULT, this.child_pid,
-            Lang.bind(this, function(pid, status, data) {
-                GLib.source_remove(this.tagWatchChild);
-                GLib.spawn_close_pid(pid);
-                this.child_pid = undefined;
-            })                
-        );
-        this.tagWatchOUT = GLib.io_add_watch(this.IOchannelOUT, GLib.PRIORITY_DEFAULT,
-            GLib.IOCondition.IN | GLib.IOCondition.HUP,
-            Lang.bind(this, this._loadPipeOUT)
-        );
-        this.tagWatchERR = GLib.io_add_watch(this.IOchannelERR, GLib.PRIORITY_DEFAULT,
-            GLib.IOCondition.IN | GLib.IOCondition.HUP,
-            Lang.bind(this, this._loadPipeERR)
-        );
-    },
-
-    _loadPipeOUT: function(channel, condition, data) {
-        if (condition != GLib.IOCondition.HUP) {
-            let [size, out] = channel.read_to_end();
-            let result = String.fromCharCode.apply(null, out).match(/(?<=\w=)\d+(?=(.\d+)?\s\w+$)/m);
-
-            if(result != null) {
-                let str = result[0];
-                str = str.concat(_(" ms"));
-                this.buttonText.set_text(str);
-	    }
-        }
-        GLib.source_remove(this.tagWatchOUT);
-        channel.shutdown(true);
-    },
-
-    _loadPipeERR: function(channel, condition, data) {
-        if (condition != GLib.IOCondition.HUP) {
-            this.buttonText.set_text(_("Error"));
-        }
-        GLib.source_remove(this.tagWatchERR);
-        channel.shutdown(false);
-    },
-
-    get _pingDestination() {
-        if (!this._settings)
-            this._loadConfig();
-        return this._settings.get_string(PING_DESTINATION);
-    },
-
-    get _refreshInterval() {
-        if (!this._settings)
-            this._loadConfig();
-        return this._settings.get_int(REFRESH_INTERVAL);
-    },
-
-    get _playBeep() {
-        if (!this._settings)
-            this._loadConfig();
-        return this._settings.get_boolean(BEEP_WHEN_TIMEOUT);
-    },
-
-    _refresh: function() {
-        this._removeTimeout();
-        if (this.child_pid === undefined) {
-            this._loadData();
-        } else {
-            this.buttonText.set_text(_('Waiting'));
-            if (this._playBeep) {
-              Util.trySpawnCommandLine('canberra-gtk-play -f ' + SOUND_FILE_PATH);
-            }
-        }
-        this._timeout = Mainloop.timeout_add_seconds(this._refreshInterval,
-            Lang.bind(this, this._refresh));
-        return true;
-    },
-
-    _removeTimeout: function() {
-        if (this._timeout !== undefined) {
-            Mainloop.source_remove(this._timeout);
-            this._timeout = undefined;
-        }
-    },
-
-    stop: function() {
-        this._removeTimeout();
-        if (this._settingsC) {
-            this._settings.disconnect(this._settingsC);
-            this._settingsC = undefined;
-        }
-        this.menu.removeAll();
+        this._readLine();
+      } catch (e) {
+        logError(e, "Ping Indicator++: failed to start ping");
+        this._handleError();
+      }
     }
-})
 
-let pingMenu;
+    _handleError() {
+      this._buttonText.set_text("Error");
+      this._applyErrorStyle();
+      // Schedule a retry
+      this._retryId = GLib.timeout_add_seconds(
+        GLib.PRIORITY_DEFAULT,
+        RETRY_INTERVAL_SEC,
+        () => {
+          this._retryId = null;
+          this._startPing();
+          return GLib.SOURCE_REMOVE;
+        },
+      );
+    }
 
-function init() {
-    Convenience.initTranslations('gnome-shell-extension-pingindicator');
-}
+    _readLine() {
+      this._stream.read_line_async(
+        GLib.PRIORITY_DEFAULT,
+        this._cancellable,
+        (stream, result) => {
+          try {
+            let [line] = stream.read_line_finish(result);
+            if (!line) {
+              // EOF: ping exited. Clean up and retry if still active.
+              if (this._proc !== null) {
+                this._proc = null;
+                this._stream = null;
+                this._handleError();
+              }
+              return;
+            }
 
-function enable() {
-    log(`enabling ${Me.metadata.name} version ${Me.metadata.version}`);
-    pingMenu = new PingMenuButton;
-    Main.panel.addToStatusArea('ping-indicator', pingMenu);
-}
+            let output = new TextDecoder().decode(line);
 
-function disable() {
-    log(`disabling ${Me.metadata.name} version ${Me.metadata.version}`);
-    pingMenu.stop();
-    pingMenu.destroy();
+            let match = output.match(/time[=<](\d+(?:\.\d+)?)\s*ms/);
+            if (match) {
+              this._buttonText.set_text(
+                `${Math.round(parseFloat(match[1]))} ms`,
+              );
+              this._clearError();
+            } else if (
+              output.includes("timeout") ||
+              output.includes("Unreachable")
+            ) {
+              this._buttonText.set_text("Timeout");
+              this._applyErrorStyle();
+              if (this._settings.get_boolean("beep-when-timeout")) {
+                try {
+                  GLib.spawn_command_line_async(
+                    `canberra-gtk-play -f ${SOUND_FILE_PATH}`,
+                  );
+                } catch (_e) {
+                  /* ignore */
+                }
+              }
+            }
+
+            this._readLine();
+          } catch (_e) {
+            // Cancelled or stream closed, clean up
+            try {
+              stream.close(null);
+            } catch (__e) {
+              /* already closed */
+            }
+          }
+        },
+      );
+    }
+
+    _applyErrorStyle() {
+      if (!this._settings.get_boolean("enable-color-on-failure")) return;
+
+      const color = this._settings.get_string("color-on-failure");
+      const css = `#panel { background-color: ${color}; }`;
+
+      if (!this._cssProvider) {
+        this._cssProvider = new St.CssProvider();
+        St.StyleContext.add_provider_for_stage(
+          global.stage,
+          this._cssProvider,
+          St.StyleContext.STYLE_PRIORITY_USER,
+        );
+      }
+      this._cssProvider.load_from_data(css, css.length);
+    }
+
+    _clearError() {
+      if (this._cssProvider) {
+        St.StyleContext.remove_provider_for_stage(
+          global.stage,
+          this._cssProvider,
+          St.StyleContext.STYLE_PRIORITY_USER,
+        );
+        this._cssProvider = null;
+      }
+    }
+
+    _stopPing() {
+      if (this._retryId) {
+        GLib.source_remove(this._retryId);
+        this._retryId = null;
+      }
+      if (this._cancellable) {
+        this._cancellable.cancel();
+        this._cancellable = null;
+      }
+      if (this._proc) {
+        let proc = this._proc;
+        this._proc = null;
+        proc.force_exit();
+      }
+    }
+
+    destroy() {
+      this._stopPing();
+      this._clearError();
+
+      if (this._settingsChangedId) {
+        this._settings.disconnect(this._settingsChangedId);
+        this._settingsChangedId = undefined;
+      }
+
+      super.destroy();
+    }
+  },
+);
+
+export default class PingIndicatorExtension extends Extension {
+  enable() {
+    log(`enabling ${this.metadata.name} version ${this.metadata.version}`);
+    this._indicator = new PingIndicator(this);
+    Main.panel.addToStatusArea(this.uuid, this._indicator);
+  }
+
+  disable() {
+    log(`disabling ${this.metadata.name} version ${this.metadata.version}`);
+    this._indicator.destroy();
+    this._indicator = null;
+  }
 }
