@@ -28,6 +28,7 @@ class PingIndicator extends PanelMenu.Button {
       this._stream = null;
       this._cancellable = null;
       this._watchdogId = null;
+      this._reapplyTimeoutId = null;
       this._lastSuccessMs = 0;
       this._inError = false;
       this._appliedColor = null;
@@ -53,13 +54,20 @@ class PingIndicator extends PanelMenu.Button {
       // our inline style. Re-apply our error color after any overview
       // transition completes, if we're still in error state. We use a
       // 0ms timeout to defer the re-apply past GNOME Shell's own
-      // transition styling.
+      // transition styling. The source ID is tracked and removed in
+      // destroy() to satisfy the EGO-L-004 lint rule.
       const reapplyIfInError = () => {
         if (!this._inError) return;
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 0, () => {
-          if (this._inError) this._applyErrorStyle(true);
-          return GLib.SOURCE_REMOVE;
-        });
+        if (this._reapplyTimeoutId) return;
+        this._reapplyTimeoutId = GLib.timeout_add(
+          GLib.PRIORITY_DEFAULT,
+          0,
+          () => {
+            this._reapplyTimeoutId = null;
+            if (this._inError) this._applyErrorStyle(true);
+            return GLib.SOURCE_REMOVE;
+          },
+        );
       };
       this._overviewShowingId = Main.overview.connect("showing", reapplyIfInError);
       this._overviewHiddenId = Main.overview.connect("hidden", reapplyIfInError);
@@ -217,6 +225,10 @@ class PingIndicator extends PanelMenu.Button {
       if (this._watchdogId) {
         GLib.source_remove(this._watchdogId);
         this._watchdogId = null;
+      }
+      if (this._reapplyTimeoutId) {
+        GLib.source_remove(this._reapplyTimeoutId);
+        this._reapplyTimeoutId = null;
       }
       if (this._cancellable) {
         this._cancellable.cancel();
