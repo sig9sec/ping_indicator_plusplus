@@ -7,3 +7,5 @@ screenshot2.png
 README.md
 .git/*
 .git
+.gitignore
+schemas/gschemas.compiled
