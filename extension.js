@@ -24,6 +24,7 @@ class PingIndicator extends PanelMenu.Button {
       this._stream = null;
       this._cancellable = null;
       this._retryId = null;
+      this._cssProvider = null;
 
       this._buttonText = new St.Label({
         text: "...",
@@ -46,6 +47,7 @@ class PingIndicator extends PanelMenu.Button {
 
     _startPing() {
       this._stopPing();
+      this._clearError();
       this._cancellable = new Gio.Cancellable();
 
       const dest = this._settings.get_string("ping-destination");
@@ -71,6 +73,7 @@ class PingIndicator extends PanelMenu.Button {
 
     _handleError() {
       this._buttonText.set_text("Error");
+      this._applyErrorStyle();
       // Schedule a retry
       this._retryId = GLib.timeout_add_seconds(
         GLib.PRIORITY_DEFAULT,
@@ -107,11 +110,13 @@ class PingIndicator extends PanelMenu.Button {
               this._buttonText.set_text(
                 `${Math.round(parseFloat(match[1]))} ms`,
               );
+              this._clearError();
             } else if (
               output.includes("timeout") ||
               output.includes("Unreachable")
             ) {
               this._buttonText.set_text("Timeout");
+              this._applyErrorStyle();
               if (this._settings.get_boolean("beep-when-timeout")) {
                 try {
                   GLib.spawn_command_line_async(
@@ -136,6 +141,34 @@ class PingIndicator extends PanelMenu.Button {
       );
     }
 
+    _applyErrorStyle() {
+      if (!this._settings.get_boolean("enable-color-on-failure")) return;
+
+      const color = this._settings.get_string("color-on-failure");
+      const css = `#panel { background-color: ${color}; }`;
+
+      if (!this._cssProvider) {
+        this._cssProvider = new St.CssProvider();
+        St.StyleContext.add_provider_for_stage(
+          global.stage,
+          this._cssProvider,
+          St.StyleContext.STYLE_PRIORITY_USER,
+        );
+      }
+      this._cssProvider.load_from_data(css, css.length);
+    }
+
+    _clearError() {
+      if (this._cssProvider) {
+        St.StyleContext.remove_provider_for_stage(
+          global.stage,
+          this._cssProvider,
+          St.StyleContext.STYLE_PRIORITY_USER,
+        );
+        this._cssProvider = null;
+      }
+    }
+
     _stopPing() {
       if (this._retryId) {
         GLib.source_remove(this._retryId);
@@ -154,6 +187,7 @@ class PingIndicator extends PanelMenu.Button {
 
     destroy() {
       this._stopPing();
+      this._clearError();
 
       if (this._settingsChangedId) {
         this._settings.disconnect(this._settingsChangedId);

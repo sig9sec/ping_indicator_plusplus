@@ -10,5 +10,11 @@
     <key name="beep-when-timeout" type="b">
       <default>false</default>
     </key>
+    <key name="enable-color-on-failure" type="b">
+  	  	  <default>true</default>
+  	</key>
+    <key name="color-on-failure" type="s">
+      <default>'#ff0000'</default>
+    </key>
   </schema>
 </schemalist>

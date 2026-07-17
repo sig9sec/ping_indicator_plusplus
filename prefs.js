@@ -1,4 +1,5 @@
 import Adw from "gi://Adw";
+import Gdk from "gi://Gdk";
 import Gio from "gi://Gio";
 import Gtk from "gi://Gtk";
 
@@ -50,6 +51,47 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
       Gio.SettingsBindFlags.DEFAULT,
     );
     group.add(beepRow);
+
+    // Color on failure
+    const colorSwitchRow = new Adw.SwitchRow({
+      title: "Change color on failure",
+    });
+    settings.bind(
+      "enable-color-on-failure",
+      colorSwitchRow,
+      "active",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    group.add(colorSwitchRow);
+
+    const colorRow = new Adw.ActionRow({
+      title: "Failure color",
+    });
+    settings.bind(
+      "enable-color-on-failure",
+      colorRow,
+      "sensitive",
+      Gio.SettingsBindFlags.GET,
+    );
+    const colorButton = new Gtk.ColorDialogButton({
+      dialog: new Gtk.ColorDialog(),
+    });
+    const rgba = new Gdk.RGBA();
+    rgba.parse(settings.get_string("color-on-failure"));
+    colorButton.rgba = rgba;
+    colorButton.connect("notify::rgba", () => {
+      const c = colorButton.rgba;
+      const hex = `#${Math.round(c.red * 255)
+        .toString(16)
+        .padStart(2, "0")}${Math.round(c.green * 255)
+        .toString(16)
+        .padStart(2, "0")}${Math.round(c.blue * 255)
+        .toString(16)
+        .padStart(2, "0")}`;
+      settings.set_string("color-on-failure", hex);
+    });
+    colorRow.add_suffix(colorButton);
+    group.add(colorRow);
 
     page.add(group);
     window.add(page);
