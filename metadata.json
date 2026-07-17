@@ -5,5 +5,5 @@
   "url": "https://github.com/sig9sec/ping_indicator_plusplus",
   "uuid": "ping_indicator_plusplus@info.sig9.ch",
   "settings-schema": "org.gnome.shell.extensions.pingindicatorplusplus",
-  "version": 1
+  "version": 3
 }
