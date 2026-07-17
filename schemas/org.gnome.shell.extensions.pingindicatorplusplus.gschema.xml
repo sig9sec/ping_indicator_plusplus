@@ -7,6 +7,9 @@
     <key name="refresh-interval" type="i">
       <default>2</default>
     </key>
+    <key name="failure-timeout" type="i">
+      <default>10</default>
+    </key>
     <key name="beep-when-timeout" type="b">
       <default>false</default>
     </key>

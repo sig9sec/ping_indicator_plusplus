@@ -30,6 +30,25 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     group.add(intervalRow);
 
+    // Failure timeout: max seconds without a successful reply before
+    // the extension considers the connection down.
+    const timeoutRow = new Adw.SpinRow({
+      title: "Failure timeout, sec.",
+      adjustment: new Gtk.Adjustment({
+        lower: 2,
+        upper: 3600,
+        step_increment: 1,
+        value: settings.get_int("failure-timeout"),
+      }),
+    });
+    settings.bind(
+      "failure-timeout",
+      timeoutRow,
+      "value",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    group.add(timeoutRow);
+
     // Destination
     const destRow = new Adw.EntryRow({
       title: "Destination, IP or URL",
