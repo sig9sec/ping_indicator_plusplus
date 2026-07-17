@@ -9,7 +9,10 @@ $(ZIP): schemas/gschemas.compiled
 schemas/gschemas.compiled: schemas/org.gnome.shell.extensions.pingindicatorplusplus.gschema.xml
 	glib-compile-schemas schemas/
 
+install: $(ZIP)
+	gnome-extensions install --force $(ZIP)
+
 clean:
 	rm -f $(ZIP) schemas/gschemas.compiled
 
-.PHONY: all clean
+.PHONY: all clean install

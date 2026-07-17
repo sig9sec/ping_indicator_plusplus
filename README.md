@@ -17,14 +17,22 @@ rewritten for GNOME 45+ with:
 ### From source
 
 ```sh
-make
-gnome-extensions install --force ping_indicator_plusplus@info.sig9.ch.zip
+make install
 ```
+
+This builds the extension and runs `gnome-extensions install --force` for you.
 
 Log out and back in, then enable:
 
 ```sh
 gnome-extensions enable ping_indicator_plusplus@info.sig9.ch
+```
+
+If you prefer to run the steps manually:
+
+```sh
+make
+gnome-extensions install --force ping_indicator_plusplus@info.sig9.ch.zip
 ```
 
 ### Manual
