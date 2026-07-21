@@ -109,7 +109,7 @@ class PingIndicator extends PanelMenu.Button {
 
         this._readLine();
       } catch (e) {
-        logError(e, "Ping Indicator++: failed to start ping");
+        console.error("Ping Indicator++: failed to start ping", e);
       }
 
       this._watchdogId = GLib.timeout_add_seconds(
@@ -268,13 +268,13 @@ class PingIndicator extends PanelMenu.Button {
 
 export default class PingIndicatorExtension extends Extension {
   enable() {
-    log(`enabling ${this.metadata.name} version ${this.metadata.version}`);
+    console.debug(`enabling ${this.metadata.name} version ${this.metadata.version}`);
     this._indicator = new PingIndicator(this);
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 
   disable() {
-    log(`disabling ${this.metadata.name} version ${this.metadata.version}`);
+    console.debug(`disabling ${this.metadata.name} version ${this.metadata.version}`);
     this._indicator.destroy();
     this._indicator = null;
   }
