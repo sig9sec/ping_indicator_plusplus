@@ -45,9 +45,9 @@ class PingIndicator extends PanelMenu.Button {
       });
       this.menu.addMenuItem(item);
 
-      this._settingsChangedId = this._settings.connect("changed", () => {
+      this._settings.connectObject("changed", () => {
         this._startPing();
-      });
+      }, this);
 
       // GNOME Shell applies `#panel:overview { background-color:
       // transparent }` during overview transitions, which overrides
@@ -69,8 +69,13 @@ class PingIndicator extends PanelMenu.Button {
           },
         );
       };
-      this._overviewShowingId = Main.overview.connect("showing", reapplyIfInError);
-      this._overviewHiddenId = Main.overview.connect("hidden", reapplyIfInError);
+      Main.overview.connectObject(
+        "showing",
+        reapplyIfInError,
+        "hidden",
+        reapplyIfInError,
+        this,
+      );
 
       this._startPing();
     }
@@ -248,18 +253,8 @@ class PingIndicator extends PanelMenu.Button {
       // Reset so the next enable() starts with a fresh timestamp.
       this._lastSuccessMs = 0;
 
-      if (this._settingsChangedId) {
-        this._settings.disconnect(this._settingsChangedId);
-        this._settingsChangedId = undefined;
-      }
-      if (this._overviewShowingId) {
-        Main.overview.disconnect(this._overviewShowingId);
-        this._overviewShowingId = undefined;
-      }
-      if (this._overviewHiddenId) {
-        Main.overview.disconnect(this._overviewHiddenId);
-        this._overviewHiddenId = undefined;
-      }
+      this._settings.disconnectObject(this);
+      Main.overview.disconnectObject(this);
 
       super.destroy();
     }
