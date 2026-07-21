@@ -151,9 +151,9 @@ class PingIndicator extends PanelMenu.Button {
 
       if (this._settings.get_boolean("beep-when-timeout")) {
         try {
-          GLib.spawn_command_line_async(
-            `canberra-gtk-play -f ${SOUND_FILE_PATH}`,
-          );
+          let player = global.display.get_sound_player();
+          let file = Gio.File.new_for_path(SOUND_FILE_PATH);
+          player.play_from_file(file, "Ping Indicator++ Timeout", null);
         } catch (_e) {
           /* ignore */
         }
