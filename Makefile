@@ -12,7 +12,11 @@ schemas/gschemas.compiled: schemas/org.gnome.shell.extensions.pingindicatorplusp
 install: $(ZIP)
 	gnome-extensions install --force $(ZIP)
 
+check:
+	glib-compile-schemas --dry-run --strict schemas/
+	node --check extension.js prefs.js
+
 clean:
 	rm -f $(ZIP) schemas/gschemas.compiled
 
-.PHONY: all clean install
+.PHONY: all clean install check
