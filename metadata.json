@@ -1,9 +1,9 @@
 {
-  "description": "Displays ping latency in the top bar, with optional sound and bar color alert when the network is down. Semi-rewrite, updated fork of ping_indicator.",
+  "description": "Displays IPv4/IPv6 ping latency in the top bar, with per-protocol status and optional sound and bar color alert when the network is down. Semi-rewrite, updated fork of ping_indicator.",
   "name": "Ping Indicator++",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "url": "https://github.com/sig9sec/ping_indicator_plusplus",
   "uuid": "ping_indicator_plusplus@info.sig9.ch",
   "settings-schema": "org.gnome.shell.extensions.pingindicatorplusplus",
-  "version": 7
+  "version": 8
 }
