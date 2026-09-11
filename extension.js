@@ -150,9 +150,13 @@ const PingIndicator = GObject.registerClass(
       return this._settings.get_string(`ping-destination-${name}`).trim();
     }
 
-    _isActive(name) {
+    _modeIncludes(name) {
       const mode = this._settings.get_string("ping-mode");
-      return (mode === "both" || mode === name) && this._protoDest(name) !== "";
+      return mode === "both" || mode === name;
+    }
+
+    _isActive(name) {
+      return this._modeIncludes(name) && this._protoDest(name) !== "";
     }
 
     _startProto(name) {
@@ -233,8 +237,19 @@ const PingIndicator = GObject.registerClass(
             if (line === null) {
               // EOF on this pipe. wait_async() is the authoritative
               // process-death signal, so just stop reading.
-              if (isStdout) p.stream = null;
-              else p.errStream = null;
+              if (isStdout) {
+                p.stream = null;
+              } else {
+                p.errStream = null;
+                // GLib does not order the child-watch source against
+                // pipe readability, so the exit callback can win the
+                // race and classify from partial stderr. Re-classify
+                // now that stderr is complete.
+                if (p.exited) {
+                  p.failureReason = classifyStderr(p.stderrText);
+                  this._updateLabel();
+                }
+              }
               return;
             }
 
@@ -328,7 +343,14 @@ const PingIndicator = GObject.registerClass(
         if (now - p.lastSuccessMs <= timeoutMs) allDown = false;
       }
 
-      if (anyActive && allDown) this._setFullError();
+      if (!anyActive) {
+        // Nothing is being monitored: never alert (an every() over an
+        // empty set is vacuously true) and release a latch left over
+        // from before the destinations were cleared.
+        this._clearFullError();
+      } else if (allDown) {
+        this._setFullError();
+      }
       this._updateLabel();
     }
 
@@ -452,7 +474,10 @@ const PingIndicator = GObject.registerClass(
 
         let text;
         if (!this._isActive(name)) {
-          text = `${PROTO_LABEL[name]}: not configured`;
+          // Distinguish "turned off by mode" from "no destination".
+          text = this._modeIncludes(name)
+            ? `${PROTO_LABEL[name]}: no destination set`
+            : `${PROTO_LABEL[name]}: off (mode)`;
         } else if (p.exited) {
           // The reason is known as soon as the process exits; the
           // retry countdown ticks with the watchdog.
