@@ -10,6 +10,47 @@ import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/
 const MODE_VALUES = ["ipv4", "ipv6", "both"];
 const MODE_LABELS = ["IPv4", "IPv6", "Both"];
 
+// Bind an Adw.EntryRow to a string setting with debounced live
+// persistence: the extension restarts the ping processes when a
+// destination changes, so writing on every keystroke would churn
+// subprocesses. Pending edits are flushed via `flushers` when the
+// dialog closes.
+function bindEntry(settings, row, key, flushers) {
+  row.set_text(settings.get_string(key));
+  let timeoutId = null;
+
+  const write = () => {
+    const text = row.get_text();
+    if (settings.get_string(key) !== text) {
+      settings.set_string(key, text);
+    }
+  };
+  const commit = () => {
+    if (timeoutId !== null) {
+      GLib.source_remove(timeoutId);
+      timeoutId = null;
+    }
+    write();
+  };
+  flushers.push(commit);
+
+  const schedule = () => {
+    if (timeoutId !== null) GLib.source_remove(timeoutId);
+    timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+      timeoutId = null;
+      write();
+      return GLib.SOURCE_REMOVE;
+    });
+  };
+
+  // Adw.EntryRow implements Gtk.Editable ("changed") since
+  // libadwaita 1.6; older versions only get Enter-key commits.
+  if (GObject.signal_lookup("changed", Adw.EntryRow.$gtype) !== 0) {
+    row.connect("changed", schedule);
+  }
+  row.connect("entry-activated", commit);
+}
+
 export default class PingIndicatorPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     const settings = this.getSettings();
@@ -100,13 +141,13 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     const v4Row = new Adw.EntryRow({
       title: "IPv4 destination, IP or hostname",
     });
-    this._bindEntry(settings, v4Row, "ping-destination-v4", flushers);
+    bindEntry(settings, v4Row, "ping-destination-v4", flushers);
     dests.add(v4Row);
 
     const v6Row = new Adw.EntryRow({
       title: "IPv6 destination, IP or hostname",
     });
-    this._bindEntry(settings, v6Row, "ping-destination-v6", flushers);
+    bindEntry(settings, v6Row, "ping-destination-v6", flushers);
     dests.add(v6Row);
 
     const syncDestSensitivity = () => {
@@ -210,44 +251,5 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     page.add(display);
 
     window.add(page);
-  }
-
-  _bindEntry(settings, row, key, flushers) {
-    row.set_text(settings.get_string(key));
-    let timeoutId = null;
-
-    const write = () => {
-      const text = row.get_text();
-      if (settings.get_string(key) !== text) {
-        settings.set_string(key, text);
-      }
-    };
-    const commit = () => {
-      if (timeoutId !== null) {
-        GLib.source_remove(timeoutId);
-        timeoutId = null;
-      }
-      write();
-    };
-    flushers.push(commit);
-
-    // Debounced live persistence: the extension restarts the ping
-    // processes when a destination changes, so writing on every
-    // keystroke would churn subprocesses.
-    const schedule = () => {
-      if (timeoutId !== null) GLib.source_remove(timeoutId);
-      timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-        timeoutId = null;
-        write();
-        return GLib.SOURCE_REMOVE;
-      });
-    };
-
-    // Adw.EntryRow implements Gtk.Editable ("changed") since
-    // libadwaita 1.6; older versions only get Enter-key commits.
-    if (GObject.signal_lookup("changed", Adw.EntryRow.$gtype) !== 0) {
-      row.connect("changed", schedule);
-    }
-    row.connect("entry-activated", commit);
   }
 }
