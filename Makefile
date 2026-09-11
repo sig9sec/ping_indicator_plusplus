@@ -15,6 +15,7 @@ install: $(ZIP)
 check:
 	glib-compile-schemas --dry-run --strict schemas/
 	node --check extension.js prefs.js
+	node --test tests/classifier.test.js
 
 clean:
 	rm -f $(ZIP) schemas/gschemas.compiled

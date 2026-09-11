@@ -10,6 +10,8 @@ import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
+import { classifyStderr, stdoutUnreachable } from "./failureClassifier.js";
+
 const SOUND_FILE_PATH = "/usr/share/sounds/freedesktop/stereo/bell.oga";
 // Watchdog checks the last-success timestamps this often.
 const WATCHDOG_INTERVAL_SEC = 1;
@@ -246,6 +248,11 @@ const PingIndicator = GObject.registerClass(
 
     _onStdoutLine(name, text) {
       const p = this._protos[name];
+      // Router-reported unreachability arrives as "From ..." lines on
+      // stdout while ping keeps running; keep it as the reason shown
+      // once the watchdog flags the protocol as down.
+      if (stdoutUnreachable(text)) p.failureReason = "Unreachable";
+
       const match = text.match(/time[=<](\d+(?:\.\d+)?)\s*ms/);
       if (match) {
         p.lastLatencyMs = parseFloat(match[1]);
@@ -274,9 +281,7 @@ const PingIndicator = GObject.registerClass(
       p.errStream = null;
       p.exited = true;
       p.lastRetryMs = Date.now();
-      // Provisional reason; the failure classifier refines this from
-      // the collected stderr text.
-      p.failureReason = "Error";
+      p.failureReason = classifyStderr(p.stderrText);
       this._updateLabel();
     }
 
