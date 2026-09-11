@@ -21,6 +21,7 @@ const PING_REPLY_WAIT_SEC = 1;
 
 const PROTO_NAMES = ["v4", "v6"];
 const PROTO_FLAG = { v4: "-4", v6: "-6" };
+const PROTO_LABEL = { v4: "IPv4", v6: "IPv6" };
 // Settings changes on these keys restart the ping processes; all other
 // keys only affect rendering and are picked up on the next tick.
 const RESTART_KEYS = [
@@ -53,6 +54,18 @@ const PingIndicator = GObject.registerClass(
         y_align: Clutter.ActorAlign.CENTER,
       });
       this.add_child(this._buttonText);
+
+      // Live per-protocol status rows; updated from _updateLabel().
+      this._menuRows = {};
+      for (const name of PROTO_NAMES) {
+        const row = new PopupMenu.PopupMenuItem("-", {
+          reactive: false,
+          can_focus: false,
+        });
+        this.menu.addMenuItem(row);
+        this._menuRows[name] = row;
+      }
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
       let item = new PopupMenu.PopupMenuItem("Settings");
       item.connect("activate", () => {
@@ -379,6 +392,7 @@ const PingIndicator = GObject.registerClass(
 
     _updateLabel() {
       if (this._destroyed) return;
+      this._updateMenu();
       const now = Date.now();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
       const names = PROTO_NAMES.filter((n) => this._isActive(n));
@@ -424,6 +438,39 @@ const PingIndicator = GObject.registerClass(
         return `${name} ${Math.round(p.lastLatencyMs)}ms ✅`;
       });
       this._setText(parts.join(" "));
+    }
+
+    _updateMenu() {
+      const now = Date.now();
+      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const retryMs = this._settings.get_int("retry-interval") * 1000;
+
+      for (const name of PROTO_NAMES) {
+        const row = this._menuRows[name];
+        if (!row) continue;
+        const p = this._protos[name];
+
+        let text;
+        if (!this._isActive(name)) {
+          text = `${PROTO_LABEL[name]}: not configured`;
+        } else if (p.exited) {
+          // The reason is known as soon as the process exits; the
+          // retry countdown ticks with the watchdog.
+          const retryIn = Math.max(
+            0,
+            Math.ceil((retryMs - (now - p.lastRetryMs)) / 1000),
+          );
+          text = `${PROTO_LABEL[name]}: down - ${p.failureReason ?? "Error"}, retry in ${retryIn} s`;
+        } else if (now - p.lastSuccessMs > timeoutMs) {
+          text = `${PROTO_LABEL[name]}: down - ${p.failureReason ?? "Timeout"}`;
+        } else if (p.lastLatencyMs === null) {
+          text = `${PROTO_LABEL[name]}: waiting for reply...`;
+        } else {
+          text = `${PROTO_LABEL[name]}: ${Math.round(p.lastLatencyMs)} ms`;
+        }
+
+        if (row.label.text !== text) row.label.set_text(text);
+      }
     }
 
     _setText(text) {
