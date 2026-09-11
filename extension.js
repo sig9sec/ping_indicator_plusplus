@@ -305,8 +305,12 @@ const PingIndicator = GObject.registerClass(
         return;
       }
       p.proc = null;
-      p.stream = null;
-      p.errStream = null;
+      // Deliberately keep p.stream / p.errStream: GLib does not order
+      // the child-watch source against pipe readability, so buffered
+      // output (including the stderr we classify from) may still be in
+      // flight. Dropping the references here would make isCurrent()
+      // reject those reads and freeze the reason at whatever partial
+      // text had arrived. The EOF handlers null them out.
       p.exited = true;
       p.lastRetryMs = Date.now();
       p.failureReason = classifyStderr(p.stderrText);
