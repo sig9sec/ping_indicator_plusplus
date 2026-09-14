@@ -4,6 +4,7 @@ ZIP = $(UUID).zip
 all: $(ZIP)
 
 $(ZIP): schemas/gschemas.compiled
+	rm -f $@
 	zip -r $@ . -x@exclude.lst
 
 schemas/gschemas.compiled: schemas/org.gnome.shell.extensions.pingindicatorplusplus.gschema.xml
