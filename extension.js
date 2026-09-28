@@ -98,6 +98,10 @@ class PingIndicator extends PanelMenu.Button {
       try {
         this._proc = new Gio.Subprocess({
           argv: [
+            // ping translates its per-packet output ("temps=" in French,
+            // "Zeit=" in German, ...), which the regex below cannot match.
+            // Force the C locale so parsing stays language-independent.
+            "env", "LC_ALL=C",
             "ping",
             "-i", String(interval),
             "-W", String(PING_REPLY_WAIT_SEC),
