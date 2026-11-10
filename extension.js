@@ -22,6 +22,10 @@ const PING_REPLY_WAIT_SEC = 1;
 const PROTO_NAMES = ["v4", "v6"];
 const PROTO_FLAG = { v4: "-4", v6: "-6" };
 const PROTO_LABEL = { v4: "IPv4", v6: "IPv6" };
+// Value of the ping-mode setting that selects this protocol. The
+// schema uses full names ("ipv4"/"ipv6") while the internal protocol
+// keys are short ("v4"/"v6", matching the -v4/-v6 settings keys).
+const PROTO_MODE = { v4: "ipv4", v6: "ipv6" };
 // Settings changes on these keys restart the ping processes; all other
 // keys only affect rendering and are picked up on the next tick.
 const RESTART_KEYS = [
@@ -152,7 +156,7 @@ const PingIndicator = GObject.registerClass(
 
     _modeIncludes(name) {
       const mode = this._settings.get_string("ping-mode");
-      return mode === "both" || mode === name;
+      return mode === "both" || mode === PROTO_MODE[name];
     }
 
     _isActive(name) {
