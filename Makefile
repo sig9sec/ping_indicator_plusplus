@@ -4,6 +4,7 @@ ZIP = $(UUID).zip
 all: $(ZIP)
 
 $(ZIP): schemas/gschemas.compiled
+	rm -f $@
 	zip -r $@ . -x@exclude.lst
 
 schemas/gschemas.compiled: schemas/org.gnome.shell.extensions.pingindicatorplusplus.gschema.xml
@@ -12,7 +13,12 @@ schemas/gschemas.compiled: schemas/org.gnome.shell.extensions.pingindicatorplusp
 install: $(ZIP)
 	gnome-extensions install --force $(ZIP)
 
+check:
+	glib-compile-schemas --dry-run --strict schemas/
+	node --check extension.js prefs.js
+	node --test tests/classifier.test.js
+
 clean:
 	rm -f $(ZIP) schemas/gschemas.compiled
 
-.PHONY: all clean install
+.PHONY: all clean install check
