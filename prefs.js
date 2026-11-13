@@ -2,7 +2,6 @@ import Adw from "gi://Adw";
 import Gdk from "gi://Gdk";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
-import GObject from "gi://GObject";
 import Gtk from "gi://Gtk";
 
 import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
@@ -43,9 +42,9 @@ function bindEntry(settings, row, key, flushers) {
     });
   };
 
-  // Adw.EntryRow implements Gtk.Editable ("changed") since
-  // libadwaita 1.6; older versions only get Enter-key commits.
-  if (GObject.signal_lookup("changed", Adw.EntryRow.$gtype) !== 0) {
+  // "changed" arrived with Gtk.Editable support in libadwaita 1.6
+  // (GNOME 47). Older releases only commit when Enter is pressed.
+  if (Adw.get_major_version() > 1 || Adw.get_minor_version() >= 6) {
     row.connect("changed", schedule);
   }
   row.connect("entry-activated", commit);
@@ -162,20 +161,15 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     });
     page.add(dests);
 
-    // Flush pending destination edits when the dialog goes away:
-    // GNOME 47+ uses Adw.Dialog ("closed"), older uses Gtk.Window
-    // ("close-request").
     const flushPending = () => {
       for (const flush of flushers) flush();
     };
-    try {
-      window.connect("closed", flushPending);
-    } catch (_e) {
-      window.connect("close-request", () => {
-        flushPending();
-        return false;
-      });
-    }
+    // The prefs window is an Adw.PreferencesWindow (a Gtk.Window) on
+    // every targeted Shell version, so close-request is the signal.
+    window.connect("close-request", () => {
+      flushPending();
+      return false;
+    });
 
     // --- Alerts ---
     const alerts = new Adw.PreferencesGroup({ title: "Alerts" });
