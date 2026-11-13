@@ -366,12 +366,11 @@ const PingIndicator = GObject.registerClass(
       this._applyErrorStyle(false);
 
       if (this._settings.get_boolean("beep-when-timeout")) {
-        try {
-          let player = global.display.get_sound_player();
-          let file = Gio.File.new_for_path(SOUND_FILE_PATH);
-          player.play_from_file(file, "Ping Indicator++ Offline", null);
-        } catch (_e) {
-          /* ignore */
+        const file = Gio.File.new_for_path(SOUND_FILE_PATH);
+        if (file.query_exists(null)) {
+          global.display
+            .get_sound_player()
+            .play_from_file(file, "Ping Indicator++ Offline", null);
         }
       }
     }
