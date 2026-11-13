@@ -7,7 +7,7 @@ rewritten for GNOME 45+ with:
 
 - Dual-stack monitoring: IPv4 and/or IPv6, each tracked independently
   (`ipv4`, `ipv6` or `both` mode)
-- Per-protocol status in the top bar (`ipv4 23ms ✅ ipv6 31ms ✅`)
+- Per-protocol status in the top bar (`v4 23ms` / `v6 31ms`, icon when down)
 - Smart retry: hard-failed protocols (no route, DNS failure, bad
   destination) are re-probed on a configurable cadence instead of
   respawning every second

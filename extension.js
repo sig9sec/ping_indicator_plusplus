@@ -22,6 +22,7 @@ const PING_REPLY_WAIT_SEC = 1;
 const PROTO_NAMES = ["v4", "v6"];
 const PROTO_FLAG = { v4: "-4", v6: "-6" };
 const PROTO_LABEL = { v4: "IPv4", v6: "IPv6" };
+const ICON_DOWN = "network-offline-symbolic";
 // Value of the ping-mode setting that selects this protocol. The
 // schema uses full names ("ipv4"/"ipv6") while the internal protocol
 // keys are short ("v4"/"v6", matching the -v4/-v6 settings keys).
@@ -53,11 +54,11 @@ const PingIndicator = GObject.registerClass(
       this._destroyed = false;
       this._appliedColor = null;
 
-      this._buttonText = new St.Label({
-        text: "...",
+      this._statusBox = new St.BoxLayout({
         y_align: Clutter.ActorAlign.CENTER,
       });
-      this.add_child(this._buttonText);
+      this._statusKey = "";
+      this.add_child(this._statusBox);
 
       // Live per-protocol status rows; updated from _updateLabel().
       this._menuRows = {};
@@ -425,7 +426,7 @@ const PingIndicator = GObject.registerClass(
       const names = PROTO_NAMES.filter((n) => this._isActive(n));
 
       if (names.length === 0) {
-        this._setText("--");
+        this._setStatus([{ text: "--" }]);
         return;
       }
 
@@ -445,26 +446,35 @@ const PingIndicator = GObject.registerClass(
           (n) => !isDown(n) && this._protos[n].lastLatencyMs !== null,
         );
         if (healthy !== undefined) {
-          this._setText(`${Math.round(this._protos[healthy].lastLatencyMs)} ms`);
+          this._setStatus([
+            { text: `${Math.round(this._protos[healthy].lastLatencyMs)} ms` },
+          ]);
         } else {
           const down = names.find((n) => isDown(n));
-          this._setText(down !== undefined ? reasonOf(down) : "...");
+          this._setStatus([
+            { text: down !== undefined ? reasonOf(down) : "..." },
+          ]);
         }
         return;
       }
 
       const single = names.length === 1;
-      const parts = names.map((name) => {
+      const parts = [];
+      for (const name of names) {
+        if (parts.length > 0) parts.push({ text: " " });
         const p = this._protos[name];
         if (isDown(name)) {
           // In single-protocol mode show the reason; in both mode the
           // reason lives in the popup menu to keep the bar compact.
-          return single ? `${name} ${reasonOf(name)} ⛔` : `${name} ⛔`;
+          parts.push({ text: single ? `${name} ${reasonOf(name)}` : name });
+          parts.push({ icon: ICON_DOWN });
+        } else if (p.lastLatencyMs === null) {
+          parts.push({ text: `${name} ...` });
+        } else {
+          parts.push({ text: `${name} ${Math.round(p.lastLatencyMs)}ms` });
         }
-        if (p.lastLatencyMs === null) return `${name} ...`;
-        return `${name} ${Math.round(p.lastLatencyMs)}ms ✅`;
-      });
-      this._setText(parts.join(" "));
+      }
+      this._setStatus(parts);
     }
 
     _updateMenu() {
@@ -503,11 +513,32 @@ const PingIndicator = GObject.registerClass(
       }
     }
 
-    _setText(text) {
-      // Skip the write when the text is unchanged: repeatedly setting
-      // the same string causes St to re-evaluate and re-render the
-      // panel actor, which produces a visible flicker.
-      if (this._buttonText.text !== text) this._buttonText.set_text(text);
+    _setStatus(parts) {
+      // Skip the rebuild when nothing changed: replacing the panel
+      // actors on every watchdog tick produces a visible flicker.
+      const key = parts.map((part) => part.icon ?? part.text).join("\0");
+      if (key === this._statusKey) return;
+      this._statusKey = key;
+      this._statusBox.destroy_all_children();
+      for (const part of parts) {
+        if (part.icon) {
+          this._statusBox.add_child(
+            new St.Icon({
+              icon_name: part.icon,
+              icon_size: 16,
+              y_align: Clutter.ActorAlign.CENTER,
+              style: "margin-left: 6px;",
+            }),
+          );
+        } else {
+          this._statusBox.add_child(
+            new St.Label({
+              text: part.text,
+              y_align: Clutter.ActorAlign.CENTER,
+            }),
+          );
+        }
+      }
     }
 
     _applyErrorStyle(force) {
