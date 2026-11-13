@@ -38,8 +38,8 @@ const COLOR_KEYS = ["color-on-failure", "enable-color-on-failure"];
 
 const PingIndicator = GObject.registerClass(
   class PingIndicator extends PanelMenu.Button {
-    _init(ext) {
-      super._init(0.0, "Ping Indicator++", false);
+    constructor(ext) {
+      super(0.0, "Ping Indicator++", false);
 
       this._ext = ext;
       this._settings = ext.getSettings();
