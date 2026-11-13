@@ -184,24 +184,22 @@ const PingIndicator = GObject.registerClass(
       const interval = this._settings.get_int("refresh-interval");
 
       try {
-        p.proc = new Gio.Subprocess({
-          argv: [
-            // ping translates its per-packet output ("temps=" in French,
-            // "Zeit=" in German, ...), which the regex in _onStdoutLine
-            // cannot match. Force the C locale so parsing stays
-            // language-independent.
-            "env", "LC_ALL=C",
-            "ping",
-            PROTO_FLAG[name],
-            "-i", String(interval),
-            "-W", String(PING_REPLY_WAIT_SEC),
-            "-s", "16",
-            p.dest,
-          ],
+        // ping translates its per-packet line ("temps=" in French,
+        // "Zeit=" in German), which the latency regex cannot match.
+        // Force the C locale so the output stays language-independent.
+        const launcher = new Gio.SubprocessLauncher({
           flags:
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
         });
-        p.proc.init(null);
+        launcher.setenv("LC_ALL", "C", true);
+        p.proc = launcher.spawnv([
+          "ping",
+          PROTO_FLAG[name],
+          "-i", String(interval),
+          "-W", String(PING_REPLY_WAIT_SEC),
+          "-s", "16",
+          p.dest,
+        ]);
 
         p.stream = new Gio.DataInputStream({
           base_stream: p.proc.get_stdout_pipe(),
