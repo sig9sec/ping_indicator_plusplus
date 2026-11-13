@@ -413,12 +413,27 @@ const PingIndicator = GObject.registerClass(
         return;
       }
 
+      const showReason = this._settings.get_boolean("show-failure-reason");
+      const hideDown =
+        this._settings.get_string("ping-mode") === "both" &&
+        this._settings.get_boolean("hide-down-protocols");
+
+      let shown = names;
+      if (hideDown) {
+        const up = names.filter((n) => !isDown(n));
+        // Keep everything on the bar during a full outage: an empty
+        // bar looks broken, and the alert color alone says too little.
+        if (up.length > 0) shown = up;
+      }
+
       const parts = [];
-      for (const name of names) {
+      for (const name of shown) {
         if (parts.length > 0) parts.push({ text: " " });
         const p = this._protos[name];
         if (isDown(name)) {
-          parts.push({ text: `${name} ${reasonOf(name)}` });
+          parts.push({
+            text: showReason ? `${name} ${reasonOf(name)}` : name,
+          });
           parts.push({ icon: ICON_DOWN });
         } else if (p.lastLatencyMs === null) {
           parts.push({ text: `${name} ...` });

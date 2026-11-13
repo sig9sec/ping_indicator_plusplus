@@ -69,6 +69,8 @@ All settings are available in the preferences dialog. Notable keys:
 | `failure-timeout`      | `10`                   | Seconds without a reply before a protocol counts as down      |
 | `retry-interval`       | `30`                   | Smart-retry cadence for exited protocols                      |
 | `show-protocol-status` | `true`                 | Per-protocol panel display; `false` = single legacy value     |
+| `show-failure-reason`  | `true`                 | Show why a protocol is down in the top bar                    |
+| `hide-down-protocols`  | `false`                | Both mode only: drop down protocols from the top bar         |
 
 Tips:
 
@@ -79,6 +81,9 @@ Tips:
 - The offline alert (sound, bar color) only fires when **every**
   active protocol is down. If you only care about IPv4, set the mode
   to `ipv4`.
+- `hide-down-protocols` trims the bar while at least one protocol is
+  up; during a full outage the protocols come back, and the popup
+  menu always lists them.
 
 ### Upgrading from v4
 

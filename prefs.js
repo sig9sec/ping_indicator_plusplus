@@ -234,6 +234,35 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     display.add(statusRow);
 
+    const reasonRow = new Adw.SwitchRow({
+      title: "Show failure reason in the bar",
+      subtitle: "The popup menu always shows why a protocol is down",
+    });
+    settings.bind(
+      "show-failure-reason",
+      reasonRow,
+      "active",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    display.add(reasonRow);
+
+    const hideRow = new Adw.SwitchRow({
+      title: "Hide down protocols",
+      subtitle: "Both mode only; the bar keeps them during a full outage",
+    });
+    settings.bind(
+      "hide-down-protocols",
+      hideRow,
+      "active",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    const syncHideSensitivity = () => {
+      hideRow.sensitive = settings.get_string("ping-mode") === "both";
+    };
+    syncHideSensitivity();
+    settings.connect("changed::ping-mode", syncHideSensitivity);
+    display.add(hideRow);
+
     page.add(display);
 
     window.add(page);
