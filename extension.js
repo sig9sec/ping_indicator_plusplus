@@ -51,7 +51,6 @@ const PingIndicator = GObject.registerClass(
       this._watchdogId = null;
       this._reapplyTimeoutId = null;
       this._fullError = false;
-      this._destroyed = false;
       this._appliedColor = null;
 
       this._statusBox = new St.BoxLayout({
@@ -165,7 +164,7 @@ const PingIndicator = GObject.registerClass(
     }
 
     _startProto(name) {
-      if (this._destroyed || !this._isActive(name)) return;
+      if (!this._isActive(name)) return;
       const p = this._protos[name];
       this._stopProto(name);
 
@@ -234,45 +233,42 @@ const PingIndicator = GObject.registerClass(
         GLib.PRIORITY_DEFAULT,
         p.cancellable,
         (s, result) => {
-          if (this._destroyed || !isCurrent()) return;
+          let line;
           try {
-            let [line] = s.read_line_finish(result);
-            if (line === null) {
-              // EOF on this pipe. wait_async() is the authoritative
-              // process-death signal, so just stop reading.
-              if (isStdout) {
-                p.stream = null;
-              } else {
-                p.errStream = null;
-                // GLib does not order the child-watch source against
-                // pipe readability, so the exit callback can win the
-                // race and classify from partial stderr. Re-classify
-                // now that stderr is complete.
-                if (p.exited) {
-                  p.failureReason = classifyStderr(p.stderrText);
-                  this._updateLabel();
-                }
-              }
-              return;
-            }
-
-            const text = new TextDecoder().decode(line);
-
-            if (isStdout) {
-              this._onStdoutLine(name, text);
-            } else if (p.stderrText.length < 4096) {
-              p.stderrText = `${p.stderrText}${text}\n`;
-            }
-
-            this._readPipe(name, s, isStdout);
+            [line] = s.read_line_finish(result);
           } catch (_e) {
-            // Cancelled or stream closed, clean up
-            try {
-              s.close(null);
-            } catch (__e) {
-              /* already closed */
-            }
+            // Cancelled when the protocol was stopped or restarted.
+            return;
           }
+          if (!isCurrent()) return;
+          if (line === null) {
+            // EOF on this pipe. wait_async() is the authoritative
+            // process-death signal, so just stop reading.
+            if (isStdout) {
+              p.stream = null;
+            } else {
+              p.errStream = null;
+              // GLib does not order the child-watch source against
+              // pipe readability, so the exit callback can win the
+              // race and classify from partial stderr. Re-classify
+              // now that stderr is complete.
+              if (p.exited) {
+                p.failureReason = classifyStderr(p.stderrText);
+                this._updateLabel();
+              }
+            }
+            return;
+          }
+
+          const text = new TextDecoder().decode(line);
+
+          if (isStdout) {
+            this._onStdoutLine(name, text);
+          } else if (p.stderrText.length < 4096) {
+            p.stderrText = `${p.stderrText}${text}\n`;
+          }
+
+          this._readPipe(name, s, isStdout);
         },
       );
     }
@@ -298,15 +294,14 @@ const PingIndicator = GObject.registerClass(
     }
 
     _onProcExit(name, proc, result) {
-      if (this._destroyed) return;
-      const p = this._protos[name];
-      if (!p || p.proc !== proc) return;
       try {
         proc.wait_finish(result);
       } catch (_e) {
-        // Cancelled during teardown; ignore.
+        // Cancelled during teardown.
         return;
       }
+      const p = this._protos[name];
+      if (!p || p.proc !== proc) return;
       p.proc = null;
       // Deliberately keep p.stream / p.errStream: GLib does not order
       // the child-watch source against pipe readability, so buffered
@@ -321,7 +316,6 @@ const PingIndicator = GObject.registerClass(
     }
 
     _checkWatchdog() {
-      if (this._destroyed) return;
       const now = Date.now();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
       const retryMs = this._settings.get_int("retry-interval") * 1000;
@@ -383,7 +377,6 @@ const PingIndicator = GObject.registerClass(
     }
 
     _onSettingsChanged(key) {
-      if (this._destroyed) return;
       if (RESTART_KEYS.includes(key)) {
         this._restart();
         return;
@@ -419,7 +412,6 @@ const PingIndicator = GObject.registerClass(
     }
 
     _updateLabel() {
-      if (this._destroyed) return;
       this._updateMenu();
       const now = Date.now();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
@@ -576,7 +568,9 @@ const PingIndicator = GObject.registerClass(
       p.errStream = null;
     }
 
-    _stopAll() {
+    destroy() {
+      // Sources first, then signals, then child processes, so a
+      // callback cannot restart work while teardown is in progress.
       if (this._watchdogId) {
         GLib.source_remove(this._watchdogId);
         this._watchdogId = null;
@@ -585,17 +579,11 @@ const PingIndicator = GObject.registerClass(
         GLib.source_remove(this._reapplyTimeoutId);
         this._reapplyTimeoutId = null;
       }
-      for (const name of PROTO_NAMES) this._stopProto(name);
-    }
-
-    destroy() {
-      this._destroyed = true;
-      this._stopAll();
-      this._clearErrorStyle();
-      this._fullError = false;
-
       this._settings.disconnectObject(this);
       Main.overview.disconnectObject(this);
+      for (const name of PROTO_NAMES) this._stopProto(name);
+      this._clearErrorStyle();
+      this._fullError = false;
 
       super.destroy();
     }
