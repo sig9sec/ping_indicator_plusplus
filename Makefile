@@ -1,9 +1,17 @@
 UUID = ping_indicator_plusplus@info.sig9.ch
 ZIP = $(UUID).zip
 
+ZIP_SOURCES = \
+	extension.js \
+	prefs.js \
+	failureClassifier.js \
+	metadata.json \
+	schemas/org.gnome.shell.extensions.pingindicatorplusplus.gschema.xml \
+	exclude.lst
+
 all: $(ZIP)
 
-$(ZIP): schemas/gschemas.compiled
+$(ZIP): $(ZIP_SOURCES) schemas/gschemas.compiled
 	rm -f $@
 	zip -r $@ . -x@exclude.lst
 
