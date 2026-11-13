@@ -413,15 +413,12 @@ const PingIndicator = GObject.registerClass(
         return;
       }
 
-      const single = names.length === 1;
       const parts = [];
       for (const name of names) {
         if (parts.length > 0) parts.push({ text: " " });
         const p = this._protos[name];
         if (isDown(name)) {
-          // In single-protocol mode show the reason; in both mode the
-          // reason lives in the popup menu to keep the bar compact.
-          parts.push({ text: single ? `${name} ${reasonOf(name)}` : name });
+          parts.push({ text: `${name} ${reasonOf(name)}` });
           parts.push({ icon: ICON_DOWN });
         } else if (p.lastLatencyMs === null) {
           parts.push({ text: `${name} ...` });
