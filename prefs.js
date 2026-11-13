@@ -224,7 +224,7 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     const statusRow = new Adw.SwitchRow({
       title: "Show protocol status",
-      subtitle: "Per-protocol latency and up/down markers in the top bar",
+      subtitle: "Per-protocol latency in the top bar; off shows a single value",
     });
     settings.bind(
       "show-protocol-status",
