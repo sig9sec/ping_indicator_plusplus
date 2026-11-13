@@ -56,7 +56,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     const page = new Adw.PreferencesPage();
 
-    // --- General ---
     const general = new Adw.PreferencesGroup({ title: "General" });
 
     const intervalRow = new Adw.SpinRow({
@@ -76,8 +75,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     general.add(intervalRow);
 
-    // Failure timeout: max seconds without a successful reply before
-    // a protocol counts as down.
     const timeoutRow = new Adw.SpinRow({
       title: "Failure timeout, sec.",
       adjustment: new Gtk.Adjustment({
@@ -95,8 +92,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     general.add(timeoutRow);
 
-    // Smart-retry cadence for protocols whose ping process exited
-    // (no route, DNS failure, bad destination).
     const retryRow = new Adw.SpinRow({
       title: "Retry interval, sec.",
       adjustment: new Gtk.Adjustment({
@@ -116,7 +111,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(general);
 
-    // --- Destinations ---
     const dests = new Adw.PreferencesGroup({ title: "Destinations" });
 
     const modeRow = new Adw.ComboRow({ title: "Protocol mode" });
@@ -171,7 +165,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
       return false;
     });
 
-    // --- Alerts ---
     const alerts = new Adw.PreferencesGroup({ title: "Alerts" });
 
     const beepRow = new Adw.SwitchRow({
@@ -227,7 +220,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(alerts);
 
-    // --- Display ---
     const display = new Adw.PreferencesGroup({ title: "Display" });
 
     const statusRow = new Adw.SwitchRow({
