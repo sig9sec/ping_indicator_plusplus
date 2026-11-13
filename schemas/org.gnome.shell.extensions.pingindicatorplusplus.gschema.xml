@@ -19,23 +19,23 @@
       <default>true</default>
     </key>
     <key name="show-failure-reason" type="b">
-      <default>true</default>
+      <default>false</default>
     </key>
     <key name="hide-down-protocols" type="b">
       <default>false</default>
     </key>
     <key name="retry-interval" type="i">
       <range min="5" max="300" />
-      <default>30</default>
+      <default>10</default>
     </key>
     <key name="refresh-interval" type="i">
       <default>2</default>
     </key>
     <key name="failure-timeout" type="i">
-      <default>10</default>
+      <default>5</default>
     </key>
     <key name="beep-when-timeout" type="b">
-      <default>false</default>
+      <default>true</default>
     </key>
     <key name="enable-color-on-failure" type="b">
       <default>true</default>

@@ -66,10 +66,10 @@ All settings are available in the preferences dialog. Notable keys:
 | `ping-destination-v4`  | `8.8.8.8`              | IPv4 destination (IP or hostname)                             |
 | `ping-destination-v6`  | `2001:4860:4860::8888` | IPv6 destination (IP or hostname)                             |
 | `refresh-interval`     | `2`                    | Seconds between pings                                         |
-| `failure-timeout`      | `10`                   | Seconds without a reply before a protocol counts as down      |
-| `retry-interval`       | `30`                   | Smart-retry cadence for exited protocols                      |
+| `failure-timeout`      | `5`                    | Seconds without a reply before a protocol counts as down      |
+| `retry-interval`       | `10`                   | Smart-retry cadence for exited protocols                      |
 | `show-protocol-status` | `true`                 | Per-protocol panel display; `false` = single legacy value     |
-| `show-failure-reason`  | `true`                 | Show why a protocol is down in the top bar                    |
+| `show-failure-reason`  | `false`                | Show why a protocol is down in the top bar                    |
 | `hide-down-protocols`  | `false`                | Both mode only: drop down protocols from the top bar         |
 
 Tips:
