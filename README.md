@@ -7,7 +7,7 @@ rewritten for GNOME 45+ with:
 
 - Dual-stack monitoring: IPv4 and/or IPv6, each tracked independently
   (`ipv4`, `ipv6` or `both` mode)
-- Per-protocol status in the top bar (`ipv4 23ms ✅ ipv6 31ms ✅`)
+- Per-protocol status in the top bar (`v4 23ms` / `v6 31ms`, icon when down)
 - Smart retry: hard-failed protocols (no route, DNS failure, bad
   destination) are re-probed on a configurable cadence instead of
   respawning every second
@@ -66,9 +66,11 @@ All settings are available in the preferences dialog. Notable keys:
 | `ping-destination-v4`  | `8.8.8.8`              | IPv4 destination (IP or hostname)                             |
 | `ping-destination-v6`  | `2001:4860:4860::8888` | IPv6 destination (IP or hostname)                             |
 | `refresh-interval`     | `2`                    | Seconds between pings                                         |
-| `failure-timeout`      | `10`                   | Seconds without a reply before a protocol counts as down      |
-| `retry-interval`       | `30`                   | Smart-retry cadence for exited protocols                      |
+| `failure-timeout`      | `5`                    | Seconds without a reply before a protocol counts as down      |
+| `retry-interval`       | `10`                   | Smart-retry cadence for exited protocols                      |
 | `show-protocol-status` | `true`                 | Per-protocol panel display; `false` = single legacy value     |
+| `show-failure-reason`  | `false`                | Show why a protocol is down in the top bar                    |
+| `hide-down-protocols`  | `false`                | Both mode only: drop down protocols from the top bar         |
 
 Tips:
 
@@ -79,6 +81,9 @@ Tips:
 - The offline alert (sound, bar color) only fires when **every**
   active protocol is down. If you only care about IPv4, set the mode
   to `ipv4`.
+- `hide-down-protocols` trims the bar while at least one protocol is
+  up; during a full outage the protocols come back, and the popup
+  menu always lists them.
 
 ### Upgrading from v4
 

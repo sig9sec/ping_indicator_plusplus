@@ -2,7 +2,6 @@ import Adw from "gi://Adw";
 import Gdk from "gi://Gdk";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
-import GObject from "gi://GObject";
 import Gtk from "gi://Gtk";
 
 import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
@@ -43,9 +42,9 @@ function bindEntry(settings, row, key, flushers) {
     });
   };
 
-  // Adw.EntryRow implements Gtk.Editable ("changed") since
-  // libadwaita 1.6; older versions only get Enter-key commits.
-  if (GObject.signal_lookup("changed", Adw.EntryRow.$gtype) !== 0) {
+  // "changed" arrived with Gtk.Editable support in libadwaita 1.6
+  // (GNOME 47). Older releases only commit when Enter is pressed.
+  if (Adw.get_major_version() > 1 || Adw.get_minor_version() >= 6) {
     row.connect("changed", schedule);
   }
   row.connect("entry-activated", commit);
@@ -57,7 +56,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     const page = new Adw.PreferencesPage();
 
-    // --- General ---
     const general = new Adw.PreferencesGroup({ title: "General" });
 
     const intervalRow = new Adw.SpinRow({
@@ -77,8 +75,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     general.add(intervalRow);
 
-    // Failure timeout: max seconds without a successful reply before
-    // a protocol counts as down.
     const timeoutRow = new Adw.SpinRow({
       title: "Failure timeout, sec.",
       adjustment: new Gtk.Adjustment({
@@ -96,8 +92,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     );
     general.add(timeoutRow);
 
-    // Smart-retry cadence for protocols whose ping process exited
-    // (no route, DNS failure, bad destination).
     const retryRow = new Adw.SpinRow({
       title: "Retry interval, sec.",
       adjustment: new Gtk.Adjustment({
@@ -117,7 +111,6 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(general);
 
-    // --- Destinations ---
     const dests = new Adw.PreferencesGroup({ title: "Destinations" });
 
     const modeRow = new Adw.ComboRow({ title: "Protocol mode" });
@@ -162,22 +155,16 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     });
     page.add(dests);
 
-    // Flush pending destination edits when the dialog goes away:
-    // GNOME 47+ uses Adw.Dialog ("closed"), older uses Gtk.Window
-    // ("close-request").
     const flushPending = () => {
       for (const flush of flushers) flush();
     };
-    try {
-      window.connect("closed", flushPending);
-    } catch (_e) {
-      window.connect("close-request", () => {
-        flushPending();
-        return false;
-      });
-    }
+    // The prefs window is an Adw.PreferencesWindow (a Gtk.Window) on
+    // every targeted Shell version, so close-request is the signal.
+    window.connect("close-request", () => {
+      flushPending();
+      return false;
+    });
 
-    // --- Alerts ---
     const alerts = new Adw.PreferencesGroup({ title: "Alerts" });
 
     const beepRow = new Adw.SwitchRow({
@@ -233,12 +220,11 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(alerts);
 
-    // --- Display ---
     const display = new Adw.PreferencesGroup({ title: "Display" });
 
     const statusRow = new Adw.SwitchRow({
       title: "Show protocol status",
-      subtitle: "Per-protocol latency and up/down markers in the top bar",
+      subtitle: "Per-protocol latency in the top bar; off shows a single value",
     });
     settings.bind(
       "show-protocol-status",
@@ -247,6 +233,35 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
       Gio.SettingsBindFlags.DEFAULT,
     );
     display.add(statusRow);
+
+    const reasonRow = new Adw.SwitchRow({
+      title: "Show failure reason in the bar",
+      subtitle: "The popup menu always shows why a protocol is down",
+    });
+    settings.bind(
+      "show-failure-reason",
+      reasonRow,
+      "active",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    display.add(reasonRow);
+
+    const hideRow = new Adw.SwitchRow({
+      title: "Hide down protocols",
+      subtitle: "Both mode only; the bar keeps them during a full outage",
+    });
+    settings.bind(
+      "hide-down-protocols",
+      hideRow,
+      "active",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    const syncHideSensitivity = () => {
+      hideRow.sensitive = settings.get_string("ping-mode") === "both";
+    };
+    syncHideSensitivity();
+    settings.connect("changed::ping-mode", syncHideSensitivity);
+    display.add(hideRow);
 
     page.add(display);
 

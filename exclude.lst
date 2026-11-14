@@ -5,8 +5,7 @@ Makefile
 package.json
 tests
 tests/*
-screenshot1.png
-screenshot2.png
+screenshot*.png
 README.md
 .git/*
 .git
