@@ -1,0 +1,147 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Ping Indicator++ package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Ping Indicator++\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-16 11:35+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: extension.js:45
+msgid "Timeout"
+msgstr ""
+
+#: extension.js:46
+msgid "Unreachable"
+msgstr ""
+
+#: extension.js:47
+msgid "No network"
+msgstr ""
+
+#: extension.js:48
+msgid "DNS Err"
+msgstr ""
+
+#: extension.js:49
+msgid "Bad dest"
+msgstr ""
+
+#: extension.js:50
+msgid "Error"
+msgstr ""
+
+#: extension.js:90
+msgid "Settings"
+msgstr ""
+
+#: extension.js:481
+msgid "no destination set"
+msgstr ""
+
+#: extension.js:482
+msgid "off (mode)"
+msgstr ""
+
+#: extension.js:488
+#, javascript-format
+msgid "retry in %d s"
+msgstr ""
+
+#: extension.js:490 extension.js:493
+msgid "down"
+msgstr ""
+
+#: extension.js:495
+msgid "waiting for reply..."
+msgstr ""
+
+#: prefs.js:61
+msgid "General"
+msgstr ""
+
+#: prefs.js:64
+msgid "Interval, sec."
+msgstr ""
+
+#: prefs.js:81
+msgid "Failure timeout, sec."
+msgstr ""
+
+#: prefs.js:98
+msgid "Retry interval, sec."
+msgstr ""
+
+#: prefs.js:116
+msgid "Destinations"
+msgstr ""
+
+#: prefs.js:118
+msgid "Protocol mode"
+msgstr ""
+
+#: prefs.js:120
+msgid "Both"
+msgstr ""
+
+#: prefs.js:137
+msgid "IPv4 destination, IP or hostname"
+msgstr ""
+
+#: prefs.js:143
+msgid "IPv6 destination, IP or hostname"
+msgstr ""
+
+#: prefs.js:170
+msgid "Alerts"
+msgstr ""
+
+#: prefs.js:173
+msgid "Beep signal when offline"
+msgstr ""
+
+#: prefs.js:184
+msgid "Change color when offline"
+msgstr ""
+
+#: prefs.js:195
+msgid "Offline color"
+msgstr ""
+
+#: prefs.js:225
+msgid "Display"
+msgstr ""
+
+#: prefs.js:228
+msgid "Show protocol status"
+msgstr ""
+
+#: prefs.js:230
+msgid "Per-protocol latency in the top bar; off shows a single value"
+msgstr ""
+
+#: prefs.js:242
+msgid "Show failure reason in the bar"
+msgstr ""
+
+#: prefs.js:243
+msgid "The popup menu always shows why a protocol is down"
+msgstr ""
+
+#: prefs.js:254
+msgid "Hide down protocols"
+msgstr ""
+
+#: prefs.js:255
+msgid "Both mode only; the bar keeps them during a full outage"
+msgstr ""

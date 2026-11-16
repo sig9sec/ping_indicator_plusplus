@@ -4,10 +4,12 @@ import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Gtk from "gi://Gtk";
 
-import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
+import {
+  ExtensionPreferences,
+  gettext as _,
+} from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
 
 const MODE_VALUES = ["ipv4", "ipv6", "both"];
-const MODE_LABELS = ["IPv4", "IPv6", "Both"];
 
 // Bind an Adw.EntryRow to a string setting with debounced live
 // persistence: the extension restarts the ping processes when a
@@ -56,10 +58,10 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     const page = new Adw.PreferencesPage();
 
-    const general = new Adw.PreferencesGroup({ title: "General" });
+    const general = new Adw.PreferencesGroup({ title: _("General") });
 
     const intervalRow = new Adw.SpinRow({
-      title: "Interval, sec.",
+      title: _("Interval, sec."),
       adjustment: new Gtk.Adjustment({
         lower: 1,
         upper: 86400,
@@ -76,7 +78,7 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     general.add(intervalRow);
 
     const timeoutRow = new Adw.SpinRow({
-      title: "Failure timeout, sec.",
+      title: _("Failure timeout, sec."),
       adjustment: new Gtk.Adjustment({
         lower: 2,
         upper: 3600,
@@ -93,7 +95,7 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     general.add(timeoutRow);
 
     const retryRow = new Adw.SpinRow({
-      title: "Retry interval, sec.",
+      title: _("Retry interval, sec."),
       adjustment: new Gtk.Adjustment({
         lower: 5,
         upper: 300,
@@ -111,11 +113,11 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(general);
 
-    const dests = new Adw.PreferencesGroup({ title: "Destinations" });
+    const dests = new Adw.PreferencesGroup({ title: _("Destinations") });
 
-    const modeRow = new Adw.ComboRow({ title: "Protocol mode" });
+    const modeRow = new Adw.ComboRow({ title: _("Protocol mode") });
     const modeModel = new Gtk.StringList();
-    for (const label of MODE_LABELS) modeModel.append(label);
+    for (const label of ["IPv4", "IPv6", _("Both")]) modeModel.append(label);
     modeRow.model = modeModel;
     const syncMode = () => {
       const idx = MODE_VALUES.indexOf(settings.get_string("ping-mode"));
@@ -132,13 +134,13 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     const flushers = [];
     const v4Row = new Adw.EntryRow({
-      title: "IPv4 destination, IP or hostname",
+      title: _("IPv4 destination, IP or hostname"),
     });
     bindEntry(settings, v4Row, "ping-destination-v4", flushers);
     dests.add(v4Row);
 
     const v6Row = new Adw.EntryRow({
-      title: "IPv6 destination, IP or hostname",
+      title: _("IPv6 destination, IP or hostname"),
     });
     bindEntry(settings, v6Row, "ping-destination-v6", flushers);
     dests.add(v6Row);
@@ -165,10 +167,10 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
       return false;
     });
 
-    const alerts = new Adw.PreferencesGroup({ title: "Alerts" });
+    const alerts = new Adw.PreferencesGroup({ title: _("Alerts") });
 
     const beepRow = new Adw.SwitchRow({
-      title: "Beep signal when offline",
+      title: _("Beep signal when offline"),
     });
     settings.bind(
       "beep-when-timeout",
@@ -179,7 +181,7 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     alerts.add(beepRow);
 
     const colorSwitchRow = new Adw.SwitchRow({
-      title: "Change color when offline",
+      title: _("Change color when offline"),
     });
     settings.bind(
       "enable-color-on-failure",
@@ -190,7 +192,7 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     alerts.add(colorSwitchRow);
 
     const colorRow = new Adw.ActionRow({
-      title: "Offline color",
+      title: _("Offline color"),
     });
     settings.bind(
       "enable-color-on-failure",
@@ -220,11 +222,13 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
 
     page.add(alerts);
 
-    const display = new Adw.PreferencesGroup({ title: "Display" });
+    const display = new Adw.PreferencesGroup({ title: _("Display") });
 
     const statusRow = new Adw.SwitchRow({
-      title: "Show protocol status",
-      subtitle: "Per-protocol latency in the top bar; off shows a single value",
+      title: _("Show protocol status"),
+      subtitle: _(
+        "Per-protocol latency in the top bar; off shows a single value",
+      ),
     });
     settings.bind(
       "show-protocol-status",
@@ -235,8 +239,8 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     display.add(statusRow);
 
     const reasonRow = new Adw.SwitchRow({
-      title: "Show failure reason in the bar",
-      subtitle: "The popup menu always shows why a protocol is down",
+      title: _("Show failure reason in the bar"),
+      subtitle: _("The popup menu always shows why a protocol is down"),
     });
     settings.bind(
       "show-failure-reason",
@@ -247,8 +251,8 @@ export default class PingIndicatorPreferences extends ExtensionPreferences {
     display.add(reasonRow);
 
     const hideRow = new Adw.SwitchRow({
-      title: "Hide down protocols",
-      subtitle: "Both mode only; the bar keeps them during a full outage",
+      title: _("Hide down protocols"),
+      subtitle: _("Both mode only; the bar keeps them during a full outage"),
     });
     settings.bind(
       "hide-down-protocols",

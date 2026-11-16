@@ -1,0 +1,147 @@
+# French translation for Ping Indicator++.
+# This file is distributed under the same license as the Ping Indicator++ package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Ping Indicator++\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-16 11:35+0100\n"
+"PO-Revision-Date: 2026-11-16 11:22+0100\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: extension.js:45
+msgid "Timeout"
+msgstr "Délai dépassé"
+
+#: extension.js:46
+msgid "Unreachable"
+msgstr "Injoignable"
+
+#: extension.js:47
+msgid "No network"
+msgstr "Pas de réseau"
+
+#: extension.js:48
+msgid "DNS Err"
+msgstr "Err. DNS"
+
+#: extension.js:49
+msgid "Bad dest"
+msgstr "Dest. invalide"
+
+#: extension.js:50
+msgid "Error"
+msgstr "Erreur"
+
+#: extension.js:90
+msgid "Settings"
+msgstr "Paramètres"
+
+#: extension.js:481
+msgid "no destination set"
+msgstr "aucune destination définie"
+
+#: extension.js:482
+msgid "off (mode)"
+msgstr "désactivé (mode)"
+
+#: extension.js:488
+#, javascript-format
+msgid "retry in %d s"
+msgstr "nouvel essai dans %d s"
+
+#: extension.js:490 extension.js:493
+msgid "down"
+msgstr "hors service"
+
+#: extension.js:495
+msgid "waiting for reply..."
+msgstr "en attente de réponse..."
+
+#: prefs.js:61
+msgid "General"
+msgstr "Général"
+
+#: prefs.js:64
+msgid "Interval, sec."
+msgstr "Intervalle (s)"
+
+#: prefs.js:81
+msgid "Failure timeout, sec."
+msgstr "Délai avant panne (s)"
+
+#: prefs.js:98
+msgid "Retry interval, sec."
+msgstr "Intervalle entre les essais (s)"
+
+#: prefs.js:116
+msgid "Destinations"
+msgstr "Destinations"
+
+#: prefs.js:118
+msgid "Protocol mode"
+msgstr "Protocole"
+
+#: prefs.js:120
+msgid "Both"
+msgstr "Les deux"
+
+#: prefs.js:137
+msgid "IPv4 destination, IP or hostname"
+msgstr "Destination IPv4 (adresse IP ou nom d’hôte)"
+
+#: prefs.js:143
+msgid "IPv6 destination, IP or hostname"
+msgstr "Destination IPv6 (adresse IP ou nom d’hôte)"
+
+#: prefs.js:170
+msgid "Alerts"
+msgstr "Alertes"
+
+#: prefs.js:173
+msgid "Beep signal when offline"
+msgstr "Signal sonore en cas de coupure"
+
+#: prefs.js:184
+msgid "Change color when offline"
+msgstr "Changer la couleur en cas de coupure"
+
+#: prefs.js:195
+msgid "Offline color"
+msgstr "Couleur en cas de coupure"
+
+#: prefs.js:225
+msgid "Display"
+msgstr "Affichage"
+
+#: prefs.js:228
+msgid "Show protocol status"
+msgstr "Afficher l’état par protocole"
+
+#: prefs.js:230
+msgid "Per-protocol latency in the top bar; off shows a single value"
+msgstr ""
+"Latence de chaque protocole dans la barre supérieure ; sinon une seule valeur"
+
+#: prefs.js:242
+msgid "Show failure reason in the bar"
+msgstr "Afficher la cause de la panne dans la barre"
+
+#: prefs.js:243
+msgid "The popup menu always shows why a protocol is down"
+msgstr "Le menu indique toujours pourquoi un protocole est hors service"
+
+#: prefs.js:254
+msgid "Hide down protocols"
+msgstr "Masquer les protocoles hors service"
+
+#: prefs.js:255
+msgid "Both mode only; the bar keeps them during a full outage"
+msgstr ""
+"Mode « Les deux » uniquement ; ils restent affichés lors d’une coupure totale"
