@@ -12,7 +12,10 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
 import { classifyStderr, stdoutUnreachable } from "./failureClassifier.js";
 
-const SOUND_FILE_PATH = "/usr/share/sounds/freedesktop/stereo/bell.oga";
+// Sound theme event id. GNOME maps "bell-window-system" to the alert
+// sound picked in Settings; without one, the sound naming fallback
+// drops trailing components and lands on the freedesktop "bell".
+const SOUND_EVENT_ID = "bell-window-system";
 const WATCHDOG_INTERVAL_SEC = 1;
 const PING_REPLY_WAIT_SEC = 1;
 
@@ -34,6 +37,14 @@ const RESTART_KEYS = [
 ];
 const COLOR_KEYS = ["color-on-failure", "enable-color-on-failure"];
 
+// Elapsed-time base for the failure timeout and the retry cadence.
+// The monotonic clock does not advance while the machine is suspended
+// and ignores wall-clock steps (NTP, manual changes), so neither one
+// reads as a long silence from the network.
+function nowMs() {
+  return GLib.get_monotonic_time() / 1000;
+}
+
 const PingIndicator = GObject.registerClass(
   class PingIndicator extends PanelMenu.Button {
     constructor(ext) {
@@ -49,6 +60,7 @@ const PingIndicator = GObject.registerClass(
       this._reapplyTimeoutId = null;
       this._fullError = false;
       this._appliedColor = null;
+      this._savedPanelStyle = null;
 
       this._statusBox = new St.BoxLayout({
         y_align: Clutter.ActorAlign.CENTER,
@@ -147,6 +159,15 @@ const PingIndicator = GObject.registerClass(
       return this._modeIncludes(name) && this._protoDest(name) !== "";
     }
 
+    // A reply can take up to one refresh interval plus the reply wait
+    // to arrive. A shorter failure timeout would expire between two
+    // healthy replies and raise the offline alert on every cycle.
+    _timeoutMs() {
+      const timeout = this._settings.get_int("failure-timeout");
+      const interval = this._settings.get_int("refresh-interval");
+      return Math.max(timeout, interval + PING_REPLY_WAIT_SEC) * 1000;
+    }
+
     _startProto(name) {
       if (!this._isActive(name)) return;
       const p = this._protos[name];
@@ -157,11 +178,13 @@ const PingIndicator = GObject.registerClass(
       // the previous timestamp: a host that fails fast must still
       // accumulate enough elapsed time to trip the timeout, and the
       // offline latch must not be re-armed by a restart.
-      if (p.lastSuccessMs === 0) p.lastSuccessMs = Date.now();
+      if (p.lastSuccessMs === 0) p.lastSuccessMs = nowMs();
 
       p.dest = this._protoDest(name);
       p.exited = false;
-      p.failureReason = null;
+      // failureReason is kept: a re-probe of a still-failing host would
+      // otherwise show "Timeout" until the new process exits and is
+      // classified again. A reply or a new classification replaces it.
       p.stderrText = "";
       p.cancellable = new Gio.Cancellable();
 
@@ -182,6 +205,9 @@ const PingIndicator = GObject.registerClass(
           "-i", String(interval),
           "-W", String(PING_REPLY_WAIT_SEC),
           "-s", "16",
+          // End of options: a destination that starts with "-" must
+          // not be read as a ping flag.
+          "--",
           p.dest,
         ]);
 
@@ -201,7 +227,7 @@ const PingIndicator = GObject.registerClass(
         console.error(`Ping Indicator++: failed to start ping (${name})`, e);
         p.proc = null;
         p.exited = true;
-        p.lastRetryMs = Date.now();
+        p.lastRetryMs = nowMs();
         p.failureReason = "Error";
         this._updateLabel();
       }
@@ -259,7 +285,7 @@ const PingIndicator = GObject.registerClass(
       const match = text.match(/time[=<](\d+(?:\.\d+)?)\s*ms/);
       if (match) {
         p.lastLatencyMs = parseFloat(match[1]);
-        p.lastSuccessMs = Date.now();
+        p.lastSuccessMs = nowMs();
         p.failureReason = null;
         this._clearFullError();
         this._updateLabel();
@@ -284,14 +310,14 @@ const PingIndicator = GObject.registerClass(
       // reject those reads and freeze the reason at whatever partial
       // text had arrived. The EOF handlers null them out.
       p.exited = true;
-      p.lastRetryMs = Date.now();
+      p.lastRetryMs = nowMs();
       p.failureReason = classifyStderr(p.stderrText);
       this._updateLabel();
     }
 
     _checkWatchdog() {
-      const now = Date.now();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const now = nowMs();
+      const timeoutMs = this._timeoutMs();
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
       let anyActive = false;
@@ -331,12 +357,9 @@ const PingIndicator = GObject.registerClass(
       this._applyErrorStyle(false);
 
       if (this._settings.get_boolean("beep-when-timeout")) {
-        const file = Gio.File.new_for_path(SOUND_FILE_PATH);
-        if (file.query_exists(null)) {
-          global.display
-            .get_sound_player()
-            .play_from_file(file, "Ping Indicator++ Offline", null);
-        }
+        global.display
+          .get_sound_player()
+          .play_from_theme(SOUND_EVENT_ID, "Ping Indicator++ Offline", null);
       }
     }
 
@@ -381,8 +404,8 @@ const PingIndicator = GObject.registerClass(
 
     _updateLabel() {
       this._updateMenu();
-      const now = Date.now();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const now = nowMs();
+      const timeoutMs = this._timeoutMs();
       const names = PROTO_NAMES.filter((n) => this._isActive(n));
 
       if (names.length === 0) {
@@ -445,8 +468,8 @@ const PingIndicator = GObject.registerClass(
     }
 
     _updateMenu() {
-      const now = Date.now();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const now = nowMs();
+      const timeoutMs = this._timeoutMs();
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
       for (const name of PROTO_NAMES) {
@@ -514,14 +537,22 @@ const PingIndicator = GObject.registerClass(
       // bypasses the cache for the overview-hidden case, where GNOME
       // Shell cleared our inline style behind our back.
       if (!force && this._appliedColor === color) return;
+      // The panel's inline style is shared with other extensions.
+      // Remember what was there when the outage started, layer the
+      // alert color on top of it, and hand it back afterwards.
+      if (this._appliedColor === null) {
+        this._savedPanelStyle = Main.panel.get_style();
+      }
       this._appliedColor = color;
-      Main.panel.set_style(`background-color: ${color};`);
+      const base = this._savedPanelStyle ?? "";
+      Main.panel.set_style(`${base} background-color: ${color};`.trim());
     }
 
     _clearErrorStyle() {
       if (this._appliedColor === null) return;
       this._appliedColor = null;
-      Main.panel.set_style(null);
+      Main.panel.set_style(this._savedPanelStyle);
+      this._savedPanelStyle = null;
     }
 
     _stopProto(name) {
