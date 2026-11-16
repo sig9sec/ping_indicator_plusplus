@@ -12,7 +12,10 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
 import { classifyStderr, stdoutUnreachable } from "./failureClassifier.js";
 
-const SOUND_FILE_PATH = "/usr/share/sounds/freedesktop/stereo/bell.oga";
+// Sound theme event id. GNOME maps "bell-window-system" to the alert
+// sound picked in Settings; without one, the sound naming fallback
+// drops trailing components and lands on the freedesktop "bell".
+const SOUND_EVENT_ID = "bell-window-system";
 const WATCHDOG_INTERVAL_SEC = 1;
 const PING_REPLY_WAIT_SEC = 1;
 
@@ -354,12 +357,9 @@ const PingIndicator = GObject.registerClass(
       this._applyErrorStyle(false);
 
       if (this._settings.get_boolean("beep-when-timeout")) {
-        const file = Gio.File.new_for_path(SOUND_FILE_PATH);
-        if (file.query_exists(null)) {
-          global.display
-            .get_sound_player()
-            .play_from_file(file, "Ping Indicator++ Offline", null);
-        }
+        global.display
+          .get_sound_player()
+          .play_from_theme(SOUND_EVENT_ID, "Ping Indicator++ Offline", null);
       }
     }
 
