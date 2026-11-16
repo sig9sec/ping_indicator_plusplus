@@ -57,6 +57,7 @@ const PingIndicator = GObject.registerClass(
       this._reapplyTimeoutId = null;
       this._fullError = false;
       this._appliedColor = null;
+      this._savedPanelStyle = null;
 
       this._statusBox = new St.BoxLayout({
         y_align: Clutter.ActorAlign.CENTER,
@@ -536,14 +537,22 @@ const PingIndicator = GObject.registerClass(
       // bypasses the cache for the overview-hidden case, where GNOME
       // Shell cleared our inline style behind our back.
       if (!force && this._appliedColor === color) return;
+      // The panel's inline style is shared with other extensions.
+      // Remember what was there when the outage started, layer the
+      // alert color on top of it, and hand it back afterwards.
+      if (this._appliedColor === null) {
+        this._savedPanelStyle = Main.panel.get_style();
+      }
       this._appliedColor = color;
-      Main.panel.set_style(`background-color: ${color};`);
+      const base = this._savedPanelStyle ?? "";
+      Main.panel.set_style(`${base} background-color: ${color};`.trim());
     }
 
     _clearErrorStyle() {
       if (this._appliedColor === null) return;
       this._appliedColor = null;
-      Main.panel.set_style(null);
+      Main.panel.set_style(this._savedPanelStyle);
+      this._savedPanelStyle = null;
     }
 
     _stopProto(name) {
