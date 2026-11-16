@@ -199,6 +199,9 @@ const PingIndicator = GObject.registerClass(
           "-i", String(interval),
           "-W", String(PING_REPLY_WAIT_SEC),
           "-s", "16",
+          // End of options: a destination that starts with "-" must
+          // not be read as a ping flag.
+          "--",
           p.dest,
         ]);
 
