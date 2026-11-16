@@ -34,6 +34,14 @@ const RESTART_KEYS = [
 ];
 const COLOR_KEYS = ["color-on-failure", "enable-color-on-failure"];
 
+// Elapsed-time base for the failure timeout and the retry cadence.
+// The monotonic clock does not advance while the machine is suspended
+// and ignores wall-clock steps (NTP, manual changes), so neither one
+// reads as a long silence from the network.
+function nowMs() {
+  return GLib.get_monotonic_time() / 1000;
+}
+
 const PingIndicator = GObject.registerClass(
   class PingIndicator extends PanelMenu.Button {
     constructor(ext) {
@@ -157,7 +165,7 @@ const PingIndicator = GObject.registerClass(
       // the previous timestamp: a host that fails fast must still
       // accumulate enough elapsed time to trip the timeout, and the
       // offline latch must not be re-armed by a restart.
-      if (p.lastSuccessMs === 0) p.lastSuccessMs = Date.now();
+      if (p.lastSuccessMs === 0) p.lastSuccessMs = nowMs();
 
       p.dest = this._protoDest(name);
       p.exited = false;
@@ -201,7 +209,7 @@ const PingIndicator = GObject.registerClass(
         console.error(`Ping Indicator++: failed to start ping (${name})`, e);
         p.proc = null;
         p.exited = true;
-        p.lastRetryMs = Date.now();
+        p.lastRetryMs = nowMs();
         p.failureReason = "Error";
         this._updateLabel();
       }
@@ -259,7 +267,7 @@ const PingIndicator = GObject.registerClass(
       const match = text.match(/time[=<](\d+(?:\.\d+)?)\s*ms/);
       if (match) {
         p.lastLatencyMs = parseFloat(match[1]);
-        p.lastSuccessMs = Date.now();
+        p.lastSuccessMs = nowMs();
         p.failureReason = null;
         this._clearFullError();
         this._updateLabel();
@@ -284,13 +292,13 @@ const PingIndicator = GObject.registerClass(
       // reject those reads and freeze the reason at whatever partial
       // text had arrived. The EOF handlers null them out.
       p.exited = true;
-      p.lastRetryMs = Date.now();
+      p.lastRetryMs = nowMs();
       p.failureReason = classifyStderr(p.stderrText);
       this._updateLabel();
     }
 
     _checkWatchdog() {
-      const now = Date.now();
+      const now = nowMs();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
@@ -381,7 +389,7 @@ const PingIndicator = GObject.registerClass(
 
     _updateLabel() {
       this._updateMenu();
-      const now = Date.now();
+      const now = nowMs();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
       const names = PROTO_NAMES.filter((n) => this._isActive(n));
 
@@ -445,7 +453,7 @@ const PingIndicator = GObject.registerClass(
     }
 
     _updateMenu() {
-      const now = Date.now();
+      const now = nowMs();
       const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
