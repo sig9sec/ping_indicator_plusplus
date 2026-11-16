@@ -17,6 +17,8 @@ rewritten for GNOME 45+ with:
   No network, DNS Err, Bad dest
 - Persistent `ping` subprocesses (no spawning per refresh)
 - Modern Adwaita preferences UI
+- Translatable (gettext); French included. Add `po/<lang>.po` to
+  contribute a language, `make pot` regenerates the template
 
 ![screenshot1](screenshot1.png)
 

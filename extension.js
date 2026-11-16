@@ -8,7 +8,10 @@ import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
-import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
+import {
+  Extension,
+  gettext as _,
+} from "resource:///org/gnome/shell/extensions/extension.js";
 
 import { classifyStderr, stdoutUnreachable } from "./failureClassifier.js";
 
@@ -33,6 +36,23 @@ const RESTART_KEYS = [
   "ping-destination-v6",
 ];
 const COLOR_KEYS = ["color-on-failure", "enable-color-on-failure"];
+
+// failureClassifier.js has no GNOME imports, so it returns reasons as
+// plain English keys. They are marked for extraction here and
+// translated when displayed.
+const N_ = (s) => s;
+const REASON_TEXT = {
+  Timeout: N_("Timeout"),
+  Unreachable: N_("Unreachable"),
+  "No network": N_("No network"),
+  "DNS Err": N_("DNS Err"),
+  "Bad dest": N_("Bad dest"),
+  Error: N_("Error"),
+};
+
+function reasonText(reason) {
+  return _(REASON_TEXT[reason] ?? reason);
+}
 
 const PingIndicator = GObject.registerClass(
   class PingIndicator extends PanelMenu.Button {
@@ -67,7 +87,7 @@ const PingIndicator = GObject.registerClass(
       }
       this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-      let item = new PopupMenu.PopupMenuItem("Settings");
+      let item = new PopupMenu.PopupMenuItem(_("Settings"));
       item.connect("activate", () => {
         this._ext.openPreferences();
       });
@@ -394,7 +414,8 @@ const PingIndicator = GObject.registerClass(
         const p = this._protos[name];
         return p.exited || now - p.lastSuccessMs > timeoutMs;
       };
-      const reasonOf = (name) => this._protos[name].failureReason ?? "Timeout";
+      const reasonOf = (name) =>
+        reasonText(this._protos[name].failureReason ?? "Timeout");
 
       if (!this._settings.get_boolean("show-protocol-status")) {
         const healthy = names.find(
@@ -454,24 +475,28 @@ const PingIndicator = GObject.registerClass(
         if (!row) continue;
         const p = this._protos[name];
 
-        let text;
+        let status;
         if (!this._isActive(name)) {
-          text = this._modeIncludes(name)
-            ? `${PROTO_LABEL[name]}: no destination set`
-            : `${PROTO_LABEL[name]}: off (mode)`;
+          status = this._modeIncludes(name)
+            ? _("no destination set")
+            : _("off (mode)");
         } else if (p.exited) {
           const retryIn = Math.max(
             0,
             Math.ceil((retryMs - (now - p.lastRetryMs)) / 1000),
           );
-          text = `${PROTO_LABEL[name]}: down - ${p.failureReason ?? "Error"}, retry in ${retryIn} s`;
+          const retry = _("retry in %d s").replace("%d", String(retryIn));
+          const reason = reasonText(p.failureReason ?? "Error");
+          status = `${_("down")} - ${reason}, ${retry}`;
         } else if (now - p.lastSuccessMs > timeoutMs) {
-          text = `${PROTO_LABEL[name]}: down - ${p.failureReason ?? "Timeout"}`;
+          const reason = reasonText(p.failureReason ?? "Timeout");
+          status = `${_("down")} - ${reason}`;
         } else if (p.lastLatencyMs === null) {
-          text = `${PROTO_LABEL[name]}: waiting for reply...`;
+          status = _("waiting for reply...");
         } else {
-          text = `${PROTO_LABEL[name]}: ${Math.round(p.lastLatencyMs)} ms`;
+          status = `${Math.round(p.lastLatencyMs)} ms`;
         }
+        const text = `${PROTO_LABEL[name]}: ${status}`;
 
         if (row.label.text !== text) row.label.set_text(text);
       }

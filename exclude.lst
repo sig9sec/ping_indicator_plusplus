@@ -4,6 +4,8 @@ exclude.lst
 Makefile
 package.json
 tests
+po
+po/*
 tests/*
 screenshot*.png
 README.md
