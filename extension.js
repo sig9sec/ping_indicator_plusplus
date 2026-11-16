@@ -178,7 +178,9 @@ const PingIndicator = GObject.registerClass(
 
       p.dest = this._protoDest(name);
       p.exited = false;
-      p.failureReason = null;
+      // failureReason is kept: a re-probe of a still-failing host would
+      // otherwise show "Timeout" until the new process exits and is
+      // classified again. A reply or a new classification replaces it.
       p.stderrText = "";
       p.cancellable = new Gio.Cancellable();
 
