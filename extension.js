@@ -155,6 +155,15 @@ const PingIndicator = GObject.registerClass(
       return this._modeIncludes(name) && this._protoDest(name) !== "";
     }
 
+    // A reply can take up to one refresh interval plus the reply wait
+    // to arrive. A shorter failure timeout would expire between two
+    // healthy replies and raise the offline alert on every cycle.
+    _timeoutMs() {
+      const timeout = this._settings.get_int("failure-timeout");
+      const interval = this._settings.get_int("refresh-interval");
+      return Math.max(timeout, interval + PING_REPLY_WAIT_SEC) * 1000;
+    }
+
     _startProto(name) {
       if (!this._isActive(name)) return;
       const p = this._protos[name];
@@ -299,7 +308,7 @@ const PingIndicator = GObject.registerClass(
 
     _checkWatchdog() {
       const now = nowMs();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const timeoutMs = this._timeoutMs();
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
       let anyActive = false;
@@ -390,7 +399,7 @@ const PingIndicator = GObject.registerClass(
     _updateLabel() {
       this._updateMenu();
       const now = nowMs();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const timeoutMs = this._timeoutMs();
       const names = PROTO_NAMES.filter((n) => this._isActive(n));
 
       if (names.length === 0) {
@@ -454,7 +463,7 @@ const PingIndicator = GObject.registerClass(
 
     _updateMenu() {
       const now = nowMs();
-      const timeoutMs = this._settings.get_int("failure-timeout") * 1000;
+      const timeoutMs = this._timeoutMs();
       const retryMs = this._settings.get_int("retry-interval") * 1000;
 
       for (const name of PROTO_NAMES) {
